@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from math import log10
 import glob as gl
-plt.style.use('classic')
+#plt.style.use('classic')
 
 def sinr():
     a2a4Files = gl.glob('noop*/DlRsrp*')
@@ -23,6 +23,9 @@ def main():
     rsrp = []
     cellid = []
     time = []
+    throughput = []
+    timeT = []
+
 
     with open('DlRsrpSinrStats.txt') as f:
         lines = f.readlines()
@@ -32,21 +35,54 @@ def main():
             rsrp.append(10 * log10(float(i.split('\t')[4])))
             cellid.append(float(i.split('\t')[1]))
 
+        cell = 1
+        ho_times = []
+        for t, c in zip(time, cellid):
+            if(cell != c):
+                ho_times.append(t)
+            cell = c
+
+        with open('throughput.out', 'r') as f:
+            lines = f.readlines()
+            for i in lines:
+                try:
+                    throughput.append(float(i.split()[3]))
+                    timeT.append(float(i.split()[0]))
+                except ValueError:
+                    pass
+            for i in ho_times:
+                plt.axvline(i, color='r')
+            plt.plot(timeT, throughput)
+            plt.xlabel("Time (s)")
+            plt.ylabel("Throughput Mbps")
+            plt.grid(True)
+
         plt.figure()
         plt.grid(True)
         plt.ylabel('Connected Cell')
         plt.xlabel('Time (s)')
+        plt.ylim(0.5, 4.5)
+        plt.xlim(0, 150)
+        plt.yticks(np.arange(1, 5), np.arange(1, 5))
+        for i in ho_times:
+            plt.axvline(i, color='r')
         plt.plot(time, cellid)
 
         plt.figure()
+        for i in ho_times:
+            plt.axvline(i, color='r')
         plt.grid(True)
         plt.plot(time, sinr)
+        plt.xlim(0, 150)
         plt.xlabel('Time (s)')
         plt.ylabel('SINR (dBm)')
 
         plt.figure()
+        for i in ho_times:
+            plt.axvline(i, color='r')
         plt.grid(True)
         plt.plot(time, rsrp)
+        plt.xlim(0, 150)
         plt.xlabel('Time (s)')
         plt.ylabel('Received Power (dBm)')
 

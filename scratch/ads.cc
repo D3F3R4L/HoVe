@@ -20,26 +20,35 @@
  * Subscribe to Pewdiepie
  */
 
-#include "ns3/lte-helper.h"
-#include "ns3/epc-helper.h"
-#include "ns3/core-module.h"
-#include "ns3/network-module.h"
 #include "ns3/ipv4-global-routing-helper.h"
+#include "ns3/point-to-point-helper.h"
+#include "ns3/applications-module.h"
+#include "ns3/animation-interface.h"
+#include "ns3/flow-monitor-helper.h"
 #include "ns3/internet-module.h"
 #include "ns3/mobility-module.h"
-#include "ns3/lte-module.h"
-#include "ns3/applications-module.h"
-#include "ns3/point-to-point-helper.h"
+ #include "ns3/packet-sink.h"
+ #include "ns3/packet-sink-helper.h"
+ #include "ns3/on-off-helper.h"
+#include "ns3/network-module.h"
 #include "ns3/netanim-module.h"
 #include "ns3/config-store.h"
 #include "ns3/flow-monitor.h"
-#include "ns3/flow-monitor-helper.h"
+#include "ns3/core-module.h"
+#include "ns3/lte-helper.h"
+#include "ns3/epc-helper.h"
+#include "ns3/lte-module.h"
 //#include "ns3/gtk-config-store.h"
 
 using namespace ns3;
 
+// Set logComponent
 NS_LOG_COMPONENT_DEFINE ("ADSAssignment");
 
+Ptr<PacketSink> sink;                         /* Pointer to the packet sink application */
+uint64_t lastTotalRx = 0;                     /* The value of the last total received bytes */
+
+// Handover Notifiers
 void NotifyConnectionEstablishedUe(std::string context,
     uint64_t imsi,
     uint16_t cellid,
@@ -49,7 +58,6 @@ void NotifyConnectionEstablishedUe(std::string context,
         << " " << context << " UE IMSI " << imsi
         << ": connected to CellId " << cellid << " with RNTI " << rnti);
 }
-
 void NotifyHandoverStartUe(std::string context,
     uint64_t imsi,
     uint16_t cellid,
@@ -61,7 +69,6 @@ void NotifyHandoverStartUe(std::string context,
         << ": previously connected to CellId " << cellid << " with RNTI "
         << rnti << ", doing handover to CellId " << targetCellId);
 }
-
 void NotifyHandoverEndOkUe(std::string context,
     uint64_t imsi,
     uint16_t cellid,
@@ -72,7 +79,6 @@ void NotifyHandoverEndOkUe(std::string context,
         << ": successful handover to CellId " << cellid << " with RNTI "
         << rnti);
 }
-
 void NotifyConnectionEstablishedEnb(std::string context,
     uint64_t imsi,
     uint16_t cellid,
@@ -83,7 +89,6 @@ void NotifyConnectionEstablishedEnb(std::string context,
         << ": successful connection of UE with IMSI " << imsi << " RNTI "
         << rnti);
 }
-
 void NotifyHandoverStartEnb(std::string context,
     uint64_t imsi,
     uint16_t cellid,
@@ -95,7 +100,6 @@ void NotifyHandoverStartEnb(std::string context,
         << ": start handover of UE with IMSI " << imsi << " RNTI "
         << rnti << " to CellId " << targetCellId);
 }
-
 void NotifyHandoverEndOkEnb(std::string context,
     uint64_t imsi,
     uint16_t cellid,
@@ -107,32 +111,85 @@ void NotifyHandoverEndOkEnb(std::string context,
         << rnti);
 }
 
+void
+CalculateThroughput ()
+{
+  std::ofstream outfile("throughput.out",  std::ofstream::app);
+
+  Time now = Simulator::Now ();                                         /* Return the simulator's virtual time. */
+  double cur = (sink->GetTotalRx () - lastTotalRx) * (double) 8 / 1e5;     /* Convert Application RX Packets to MBits. */
+  outfile << now.GetSeconds () << " s : \t" << cur << " Mbit/s" << std::endl;
+  lastTotalRx = sink->GetTotalRx ();
+  Simulator::Schedule (MilliSeconds (100), &CalculateThroughput);
+
+  outfile.flush();
+  outfile.close();
+}
+
+
 int
 main (int argc, char *argv[])
 {
-
-
-  uint16_t numberOfUeNodes = 1;
-  uint16_t numberOfEnbNodes = 4;
+  uint16_t numberOfUeNodes = 1; // number of mobile devices
+  uint16_t numberOfEnbNodes = 4; // number of ENBs
   bool nodeMobilitySpeed = true; // gotta go fast
-  // uint16_t nodeSpeed = 100; // m/s
-  double simTime = 150;
-  double distance = 1000.0;
-  double interPacketInterval = 1000;
+  uint16_t nodeSpeed = 20; // node's velocity
+  double simTime = 150; // simulation time
+  double distance = 1000.0; // distance between cells
+  double interPacketInterval = 1000; // time between  packets
 
-  uint16_t seed = 1000;
-  std::string handoverAlg = "noop";
+  uint32_t payloadSize = 1472;                       /* Transport layer payload size in bytes. */
+  std::string dataRate = "100Mbps";                  /* Application layer datarate. */
+  std::string tcpVariant = "TcpNewReno";             /* TCP variant type. */
+  std::string phyRate = "HtMcs7";                    /* Physical layer bitrate. */
 
+  uint16_t seed = 1000; // random seed
+  std::string handoverAlg = "a2a4"; //handover algorithm
+
+  uint16_t select = 0; // scheduler selection
+
+  // Parse command line arguments
   CommandLine cmd;
   cmd.AddValue("seed", "Simulation Random Seed", seed);
   cmd.AddValue("handoverAlg", "Handover Algorithm Used", handoverAlg);
+  cmd.AddValue("select","Select the scheduler type",select);
   cmd.Parse (argc, argv);
 
+  // scheduler definition
   Ptr<LteHelper> lteHelper = CreateObject<LteHelper> ();
-  // lteHelper->SetSchedulerType ("ns3::RrFfMacScheduler");
+   if (select == 0)
+     {
+     } 
+   else if (select == 1)
+     {
+      lteHelper->SetSchedulerType("ns3::TdMtFfMacScheduler");
+     }
+   else if (select == 2)
+     {
+       lteHelper->SetSchedulerType("ns3::TtaFfMacScheduler");
+     }
+   else if (select == 3)
+     {
+       lteHelper->SetSchedulerType("ns3::TdBetFfMacScheduler");
+     }
+   else if (select == 4)
+     {
+       lteHelper->SetSchedulerType("ns3::TdTbfqFfMacScheduler");
+     }
+   else if (select == 5)
+     {
+	lteHelper->SetSchedulerType("ns3::PssFfMacScheduler");
+     }
+   else
+     {
+       NS_LOG_ERROR ("Invalid scheduler type.  Values must be [0-5], where 0=RR 1=MT ;2=TTA;3=BET;4=TBFQ;5=PSS");
+     }
+
+  // path loss model
   lteHelper->SetAttribute("PathlossModel",
        StringValue("ns3::FriisPropagationLossModel"));
 
+  // set frequency bands
   Config::SetDefault ("ns3::LteUeNetDevice::DlEarfcn", UintegerValue (100));
   Config::SetDefault ("ns3::LteEnbNetDevice::DlEarfcn", UintegerValue (100));
   Config::SetDefault ("ns3::LteEnbNetDevice::UlEarfcn", UintegerValue (18100));
@@ -140,23 +197,25 @@ main (int argc, char *argv[])
   Config::SetDefault ("ns3::LteEnbNetDevice::DlBandwidth", UintegerValue (50));
   Config::SetDefault ("ns3::LteEnbNetDevice::UlBandwidth", UintegerValue (50));
 
-   if (handoverAlg == "noop")
-        lteHelper->SetHandoverAlgorithmType("ns3::NoOpHandoverAlgorithm");
-    else if (handoverAlg == "a3") {
-        lteHelper->SetHandoverAlgorithmType("ns3::A3RsrpHandoverAlgorithm");
-        lteHelper->SetHandoverAlgorithmAttribute("Hysteresis", DoubleValue(3.0));
-        lteHelper->SetHandoverAlgorithmAttribute("TimeToTrigger",
-            TimeValue(MilliSeconds(256)));
-    }
+  // Handover algorithm
+  if (handoverAlg == "noop")
+       lteHelper->SetHandoverAlgorithmType("ns3::NoOpHandoverAlgorithm");
+  else if (handoverAlg == "a3") {
+       lteHelper->SetHandoverAlgorithmType("ns3::A3RsrpHandoverAlgorithm");
+       lteHelper->SetHandoverAlgorithmAttribute("Hysteresis", DoubleValue(3.0));
+       lteHelper->SetHandoverAlgorithmAttribute("TimeToTrigger",
+           TimeValue(MilliSeconds(256)));
+  }
 
-    else if (handoverAlg == "a2a4") {
-        lteHelper->SetHandoverAlgorithmType("ns3::A2A4RsrqHandoverAlgorithm");
-        lteHelper->SetHandoverAlgorithmAttribute("ServingCellThreshold",
-            UintegerValue(30));
-        lteHelper->SetHandoverAlgorithmAttribute("NeighbourCellOffset",
-            UintegerValue(2));
-    }
+  else if (handoverAlg == "a2a4") {
+      lteHelper->SetHandoverAlgorithmType("ns3::A2A4RsrqHandoverAlgorithm");
+      lteHelper->SetHandoverAlgorithmAttribute("ServingCellThreshold",
+          UintegerValue(30));
+      lteHelper->SetHandoverAlgorithmAttribute("NeighbourCellOffset",
+          UintegerValue(2));
+  }
 
+  // define EPC
   Ptr<PointToPointEpcHelper>  epcHelper = CreateObject<PointToPointEpcHelper> ();
   lteHelper->SetEpcHelper (epcHelper);
 
@@ -217,7 +276,7 @@ main (int argc, char *argv[])
     mobility.Install(ueNodes);
     for (NodeContainer::Iterator iter= ueNodes.Begin(); iter!=ueNodes.End(); ++iter){
       Ptr<Node> tmp_node = (*iter);
-      tmp_node->GetObject<ConstantVelocityMobilityModel>()->SetVelocity(Vector(20, 0, 0));
+      tmp_node->GetObject<ConstantVelocityMobilityModel>()->SetVelocity(Vector(nodeSpeed, 0, 0));
     }
   }
   else {
@@ -244,6 +303,23 @@ main (int argc, char *argv[])
 
   // Attach one UE per eNodeB
   lteHelper->Attach(ueLteDevs);
+  /* Install TCP Receiver on the access point */
+  PacketSinkHelper sinkHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), 9));
+  ApplicationContainer sinkApp = sinkHelper.Install (ueNodes.Get(0));
+  sink = StaticCast<PacketSink> (sinkApp.Get (0));
+
+  /* Install TCP/UDP Transmitter on the station */
+  OnOffHelper server ("ns3::TcpSocketFactory", (InetSocketAddress (ueIpIface.GetAddress (0), 9)));
+  server.SetAttribute ("PacketSize", UintegerValue (payloadSize));
+  server.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=1]"));
+  server.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=0]"));
+  server.SetAttribute ("DataRate", DataRateValue (DataRate (dataRate)));
+  ApplicationContainer serverApp = server.Install (remoteHost);
+
+  /* Start Applications */
+  sinkApp.Start (Seconds (0.0));
+  serverApp.Start (Seconds (1.0));
+  Simulator::Schedule (Seconds (1.1), &CalculateThroughput);
 
   // Install and start applications on UEs and remote host
   uint16_t dlPort = 1234;
@@ -287,11 +363,11 @@ main (int argc, char *argv[])
     }
   serverApps.Start (Seconds (0.01));
   clientApps.Start (Seconds (0.01));
+
   lteHelper->EnableTraces ();
   lteHelper->AddX2Interface (enbNodes);
-  // lteHelper->HandoverRequest (Seconds (10), ueLteDevs.Get (0), enbLteDevs.Get (0), enbLteDevs.Get (1));
   //Uncomment to enable PCAP tracing
-  //p2ph.EnablePcapAll("lena-epc-first");
+  p2ph.EnablePcapAll("lena-epc-first");
 
   AnimationInterface anim ("wireless-animation.xml"); // Mandatory
 

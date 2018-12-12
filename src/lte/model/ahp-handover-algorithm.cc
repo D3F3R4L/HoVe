@@ -374,6 +374,46 @@ bool AhpHandoverAlgorithm::IsValidNeighbour(uint16_t cellId)
     return true;
 }
 
+double AhpHandoverAlgorithm::GetPositions(int imsi, std::string path){
+    double start_x, start_y, start_z;
+    std::string aux1, aux2, aux3;
+
+    std::ifstream mobilityFile;
+
+    mobilityFile.open (path, std::ios::in);
+    if (mobilityFile.is_open()){
+        std::string line;
+        while (getline(mobilityFile, line)){
+            std::stringstream st;
+            st << "$node_(" << imsi - 1 << ") set";
+            if (line.find("set X") == std::string::npos || line.find(st.str()) == std::string::npos){}
+            else
+            {
+                std::istringstream ss(line);
+                ss >> aux1 >> aux2 >> aux3 >> start_x;
+                NS_LOG_UNCOND(ss.str());
+            }
+            if (line.find("set Y") == std::string::npos || line.find(st.str()) == std::string::npos){}
+            else
+            {
+                std::istringstream ss(line);
+                ss >> aux1 >> aux2 >> aux3 >> start_y;
+                NS_LOG_UNCOND(ss.str());
+            }
+            if (line.find("set Z") == std::string::npos || line.find(st.str()) == std::string::npos){}
+            else
+            {
+                std::istringstream ss(line);
+                ss >> aux1 >> aux2 >> aux3 >> start_z;
+                NS_LOG_UNCOND(ss.str());
+            }
+        }
+    }
+    mobilityFile.close();
+    double i[3] = {start_x, start_y, start_z};
+    return *i;
+}
+
 void AhpHandoverAlgorithm::PredictPositions (uint16_t imsi){
     double x;
     std::string aux1, aux2, aux3;
@@ -382,60 +422,15 @@ void AhpHandoverAlgorithm::PredictPositions (uint16_t imsi){
 
     if (imsi <= m_numberOfUEs / 3){
         NS_LOG_UNCOND("UE é um taxi");
-        mobilityFile.open ("mobil/taxisTrace.tcl", std::ios::in);
-
-        if (mobilityFile.is_open()){
-            std::string line;
-            while (getline(mobilityFile, line)){
-                std::stringstream st;
-                st << "$node_(" << imsi << ") set";
-                if (line.find("set X") == std::string::npos || line.find(st.str()) == std::string::npos)
-                    continue;
-                std::istringstream ss(line);
-                ss >> aux1 >> aux2 >> aux3 >> x;
-                NS_LOG_UNCOND(ss.str());
-                if (!ss)
-                    continue;
-            }
-        }
+        GetPositions(imsi, "mobil/taxisTrace.tcl");
     }
     else if (imsi <= m_numberOfUEs * 2 / 3){
         NS_LOG_UNCOND("UE é um Carro");
-        mobilityFile.open ("mobil/carroTrace.tcl", std::ios::in);
-
-        if (mobilityFile.is_open()){
-            std::string line;
-            while (getline(mobilityFile, line)){
-                std::stringstream st;
-                st << "$node_(" << imsi << ") set";
-                if (line.find("set X") == std::string::npos || line.find(st.str()) == std::string::npos)
-                    continue;
-                std::istringstream ss(line);
-                ss >> aux1 >> aux2 >> aux3 >> x;
-                NS_LOG_UNCOND(ss.str());
-                if (!ss)
-                    continue;
-            }
-        }
+        GetPositions(imsi, "mobil/carroTrace.tcl");
     }
     else {
         NS_LOG_UNCOND("UE é um Onibus");
-        mobilityFile.open ("mobil/onibusTrace.tcl", std::ios::in);
-
-        if (mobilityFile.is_open()){
-            std::string line;
-            while (getline(mobilityFile, line)){
-                std::stringstream st;
-                st << "$node_(" << imsi << ") set";
-                if (line.find("set X") == std::string::npos || line.find(st.str()) == std::string::npos)
-                    continue;
-                std::istringstream ss(line);
-                ss >> aux1 >> aux2 >> aux3 >> x;
-                NS_LOG_UNCOND(ss.str());
-                if (!ss)
-                    continue;
-            }
-        }
+        GetPositions(imsi, "mobil/onibusTrace.tcl");
     }
     
    mobilityFile.close();

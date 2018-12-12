@@ -569,6 +569,8 @@ void showPosition(Ptr<Node> node, double deltaTime)
 /*--------------------------MAIN FUNCTION-------------------------*/
 int main(int argc, char* argv[])
 {
+    // Garantir mesma quantidade de nós de cda tipo
+    NS_ASSERT(pedestres == carros && carros == trens);
     for (int u = 0; u < node_ue; ++u) {
         for (int i = 0; i < numberOfPackets; ++i)
             receivedPackets[u][i] = false;
