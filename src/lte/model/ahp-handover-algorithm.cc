@@ -27,6 +27,7 @@
  * Modified by: Lucas Pacheco <lucassidpacheco@gmail.com>
  */
 
+#include <math.h> // for de distance calculation
 #include "ahp-handover-algorithm.h"
 #include <ns3/log.h>
 #include <ns3/uinteger.h>
@@ -73,9 +74,9 @@ AhpHandoverAlgorithm::GetTypeId()
                                 MakeUintegerAccessor(&AhpHandoverAlgorithm::m_servingCellThreshold),
                                 MakeUintegerChecker<uint8_t>(0, 34))
                             .AddAttribute("NumberOfUEs",
-				"Number of UEs in the simulation",
-				UintegerValue(60),
-				MakeUintegerAccessor(&AhpHandoverAlgorithm::m_numberOfUEs),
+                                "Number of UEs in the simulation",
+                                UintegerValue(60),
+                                MakeUintegerAccessor(&AhpHandoverAlgorithm::m_numberOfUEs),
                                 MakeUintegerChecker<uint8_t>())
                             .AddAttribute("NeighbourCellOffset",
                                 "Minimum offset between the serving and the best neighbour "
@@ -146,7 +147,7 @@ void AhpHandoverAlgorithm::DoReportUeMeas(uint16_t rnti,
 {
     NS_LOG_FUNCTION(this << rnti << (uint16_t)measResults.measId);
 
-    EvaluateHandover(rnti, measResults.rsrqResult, (uint16_t)measResults.measId, (uint16_t) measResults.servingCellId);
+    EvaluateHandover(rnti, measResults.rsrqResult, (uint16_t)measResults.measId, (uint16_t)measResults.servingCellId);
 
     if (measResults.haveMeasResultNeighCells
         && !measResults.measResultListEutra.empty()) {
@@ -182,15 +183,15 @@ void AhpHandoverAlgorithm::EvaluateHandover(uint16_t rnti,
         static double tm = 0;
         MeasurementRow_t::iterator it2;
 
-
         /*------------ASSOCIATE RNTI WITH CELLID------------*/
         int imsi;
         std::stringstream rntiFileName;
         rntiFileName << "./v2x_temp/" << servingCellId << "/" << rnti;
         std::ifstream rntiFile(rntiFileName.str());
 
-        while(rntiFile >> imsi){}
-                /*-----------------DEFINE PARAMETERS-----------------*/
+        while (rntiFile >> imsi) {
+        }
+        /*-----------------DEFINE PARAMETERS-----------------*/
         uint16_t bestNeighbourCellId = servingCellId;
         uint16_t bestNeighbourCellRsrq = 0;
         //        uint8_t bestcell = 0;
@@ -198,7 +199,6 @@ void AhpHandoverAlgorithm::EvaluateHandover(uint16_t rnti,
         int i = 0;
 
         int n_c = it1->second.size() + 1; //número de células
-
 
         //características das células
         double cell[it1->second.size() + 1][4];
@@ -217,7 +217,7 @@ void AhpHandoverAlgorithm::EvaluateHandover(uint16_t rnti,
 
         //current qos value
         std::stringstream qosRnti;
-        qosRnti << "v2x_temp/qosTorre" << servingCellId ;
+        qosRnti << "v2x_temp/qosTorre" << servingCellId;
         std::ifstream qosRntiFile;
         qosRntiFile.open(qosRnti.str());
 
@@ -227,18 +227,17 @@ void AhpHandoverAlgorithm::EvaluateHandover(uint16_t rnti,
             // if (qoeAtual < 2)
             //     threshold = 0;
             if (qoeAtual > 3.5)
-              return;
+                return;
         }
-
 
         if (qosRntiFile.is_open()) {
             while (qosRntiFile >> qosAtual) {
             }
         }
-	else if (qosAtual > 0.8) 
-	  return;
+        else if (qosAtual > 0.8)
+            return;
         if (qosAtual < 0)
-          qosAtual = 0;
+            qosAtual = 0;
 
         /*----------------neighbor cell values----------------*/
         for (it2 = it1->second.begin(); it2 != it1->second.end(); ++it2) {
@@ -289,7 +288,7 @@ void AhpHandoverAlgorithm::EvaluateHandover(uint16_t rnti,
         else {
             cell[i][1] = 0;
         }
-        if(qosAtual)
+        if (qosAtual)
             cell[i][2] = qosAtual;
         else
             cell[i][2] = 0;
@@ -314,47 +313,58 @@ void AhpHandoverAlgorithm::EvaluateHandover(uint16_t rnti,
         //  soma[i] += cell[i][2] * 0.25;
         //}
         //else
-        for (int i = 0; i < n_c; ++i){
-          soma[i] = cell[i][0] * 0.14;
-          soma[i] += cell[i][1] * 0.28;
-          soma[i] += cell[i][2] * 0.57;
+        for (int i = 0; i < n_c; ++i) {
+            soma[i] = cell[i][0] * 0.14;
+            soma[i] += cell[i][1] * 0.28;
+            soma[i] += cell[i][2] * 0.57;
         }
 
-        for (i = 0; i < n_c; ++i){
-          if (soma[i] > soma_res && cell[i][0] != 0 && cell[i][0] > servingCellRsrq){
-              bestNeighbourCellRsrq = cell[i][0];
-              bestNeighbourCellId = cell[i][3];
-              soma_res = soma[i];
-          }
+        for (i = 0; i < n_c; ++i) {
+            if (soma[i] > soma_res && cell[i][0] != 0 && cell[i][0] > servingCellRsrq) {
+                bestNeighbourCellRsrq = cell[i][0];
+                bestNeighbourCellId = cell[i][3];
+                soma_res = soma[i];
+            }
         }
-        NS_LOG_INFO("\n\n\n------------------------------------------------------------------------");
+
         PredictPositions(imsi);
-        NS_LOG_INFO("Measured at: " << Simulator::Now().GetSeconds() << 
-			" Seconds.\nIMSI:" << imsi << "\nRNTI: " << rnti << "\n");
-        for (int i = 0; i < n_c; ++i){
-          if(cell[i][3] == servingCellId)
-              NS_LOG_INFO("Cell " << cell[i][3] <<" -- AHP Score:" << soma[i] << " (serving)");
-          else
-              NS_LOG_INFO("Cell " << cell[i][3] <<" -- AHP Score:" << soma[i]);
-          NS_LOG_INFO("         -- RSRQ: " << cell[i][0]);
-          NS_LOG_INFO("         -- MOSp: " << cell[i][1]);
-          NS_LOG_INFO("         -- PDR: " << cell[i][2] << "\n");
+        int dist_soma = 0;
+        for (int i = 0; i < 12; ++i) {
+            dist_soma = 0;
+            for (int j = 0; j < 20; ++j)
+                dist_soma += dist[i][j];
+            std::cout << "Node " << imsi << " is on average " << dist_soma/20  << " meters away from cell " << i + 1 << "\n";
+        }
+        //for (i = 0; i < n_c; ++i){
+        //    NS_LOG_INFO(" Cell " << cell[i][3] - 1 << "is currently " << dist[i][0] << " m away from UE " << imsi);
+        //}
+
+        NS_LOG_INFO("\n\n\n------------------------------------------------------------------------");
+        NS_LOG_INFO("Measured at: " << Simulator::Now().GetSeconds() << " Seconds.\nIMSI:" << imsi << "\nRNTI: " << rnti << "\n");
+        for (int i = 0; i < n_c; ++i) {
+            if (cell[i][3] == servingCellId)
+                NS_LOG_INFO("Cell " << cell[i][3] << " -- AHP Score:" << soma[i] << " (serving)");
+            else
+                NS_LOG_INFO("Cell " << cell[i][3] << " -- AHP Score:" << soma[i]);
+            NS_LOG_INFO("         -- RSRQ: " << cell[i][0]);
+            NS_LOG_INFO("         -- MOSp: " << cell[i][1]);
+            NS_LOG_INFO("         -- PDR: " << cell[i][2] << "\n");
         }
         NS_LOG_INFO("\n\nBest Neighbor Cell ID: " << bestNeighbourCellId);
 
         /*-----------------------------EXECUÇÃO DO HANDOVER-----------------------------*/
-        
+
         if (bestNeighbourCellId != servingCellId && bestNeighbourCellRsrq > servingCellRsrq) {
-          if (Simulator::Now().GetSeconds() - tm < 0.5){
-            NS_LOG_INFO("Last Handover: " << tm);
-            NS_LOG_INFO("Delaying Handover");
-            NS_LOG_INFO("------------------------------------------------------------------------\n\n\n\n");
-            return;
-          }
-          tm = Simulator::Now().GetSeconds();
-          //Simulator::Schedule(Seconds(rand() % 2), &m_handoverManagementSapUser->TriggerHandover, this, rnti, bestNeighbourCellId);
-          m_handoverManagementSapUser->TriggerHandover(rnti, bestNeighbourCellId);
-          NS_LOG_INFO("Triggering Handover -- RNTI: " << rnti << " -- cellId:" << bestNeighbourCellId << "\n\n\n");
+            if (Simulator::Now().GetSeconds() - tm < 0.5) {
+                NS_LOG_INFO("Last Handover: " << tm);
+                NS_LOG_INFO("Delaying Handover");
+                NS_LOG_INFO("------------------------------------------------------------------------\n\n\n\n");
+                return;
+            }
+            tm = Simulator::Now().GetSeconds();
+            //Simulator::Schedule(Seconds(rand() % 2), &m_handoverManagementSapUser->TriggerHandover, this, rnti, bestNeighbourCellId);
+            m_handoverManagementSapUser->TriggerHandover(rnti, bestNeighbourCellId);
+            NS_LOG_INFO("Triggering Handover -- RNTI: " << rnti << " -- cellId:" << bestNeighbourCellId << "\n\n\n");
         }
         NS_LOG_INFO("------------------------------------------------------------------------\n\n\n\n");
     } // end of else of if (it1 == m_neighbourCellMeasures.end ())
@@ -374,66 +384,68 @@ bool AhpHandoverAlgorithm::IsValidNeighbour(uint16_t cellId)
     return true;
 }
 
-double AhpHandoverAlgorithm::GetPositions(int imsi, std::string path){
-    double start_x, start_y, start_z;
-    std::string aux1, aux2, aux3;
+// function to read mobility files and store them in an array
+void AhpHandoverAlgorithm::GetPositions(int imsi, std::string path) 
+{
+    // coordenadas
+    double x, y, z;
+    // variaveis auxiliares para a leitura dos arquivos
+    std::string aux1, aux2, aux3, aux4, aux5;
+    std::string aux_l1, aux_l2, aux_l3;
 
+    // implementação com ponteiros
+    // double dist[100][100];
+    // std::unique_ptr<double[][20]> dist(new double[12][20]);
+
+    // objeto do arquivo do sumo
     std::ifstream mobilityFile;
 
-    mobilityFile.open (path, std::ios::in);
-    if (mobilityFile.is_open()){
+    // abertura para leitura
+    mobilityFile.open(path, std::ios::in);
+    if (mobilityFile.is_open()) {
+        // variavel para armazenar a linha atual
         std::string line;
-        while (getline(mobilityFile, line)){
-            std::stringstream st;
-            st << "$node_(" << imsi - 1 << ") set";
-            if (line.find("set X") == std::string::npos || line.find(st.str()) == std::string::npos){}
-            else
-            {
+        // enquanto houver linhas
+        while (getline(mobilityFile, line)) {
+            // string a ser procurada
+            std::stringstream at;
+            at << "$node_(" << imsi - 1 << ") setdest";
+
+            // se não houver match, não fazer nada
+            if (line.find(at.str()) == std::string::npos) {}
+            else {
+                // separar as colunas da linha
                 std::istringstream ss(line);
-                ss >> aux1 >> aux2 >> aux3 >> start_x;
-                NS_LOG_UNCOND(ss.str());
-            }
-            if (line.find("set Y") == std::string::npos || line.find(st.str()) == std::string::npos){}
-            else
-            {
-                std::istringstream ss(line);
-                ss >> aux1 >> aux2 >> aux3 >> start_y;
-                NS_LOG_UNCOND(ss.str());
-            }
-            if (line.find("set Z") == std::string::npos || line.find(st.str()) == std::string::npos){}
-            else
-            {
-                std::istringstream ss(line);
-                ss >> aux1 >> aux2 >> aux3 >> start_z;
-                NS_LOG_UNCOND(ss.str());
-            }
-        }
-    }
+                ss >> aux1 >> aux2 >> aux3 >> aux4 >> aux5 >> x >> y >> z;
+
+                // ler arquivo com as localizações das células
+                std::ifstream infile("cellsList");
+
+                if (stoi(aux3) >= (int) Simulator::Now().GetSeconds() && stoi(aux3) - Simulator::Now().GetSeconds() < 20){
+                    int nc = 0;
+                    while(infile >> aux_l1 >> aux_l2 >> aux_l3){
+                        dist[nc][stoi(aux3)] = sqrt(pow(stod(aux_l2) - x,2) + pow(stod(aux_l3) - y, 2));
+                        //NS_LOG_UNCOND("node is " << sqrt(pow(stod(aux_l2) - x,2) + pow(stod(aux_l3) - y, 2)) << " meters away from cell " << nc);
+                        ++nc;
+                    }
+                } // 
+                infile.close();
+            } // fim da iteração de matches
+        } // fim da iteração de linhas
+    } // fim da leitura do arquivo de mobilidade
     mobilityFile.close();
-    double i[3] = {start_x, start_y, start_z};
-    return *i;
+
+    return;
 }
 
-void AhpHandoverAlgorithm::PredictPositions (uint16_t imsi){
-    double x;
-    std::string aux1, aux2, aux3;
-    
-    std::ifstream mobilityFile;
-
-    if (imsi <= m_numberOfUEs / 3){
-        NS_LOG_UNCOND("UE é um taxi");
+void AhpHandoverAlgorithm::PredictPositions(uint16_t imsi)
+{
+    if (imsi <= m_numberOfUEs / 3)
         GetPositions(imsi, "mobil/taxisTrace.tcl");
-    }
-    else if (imsi <= m_numberOfUEs * 2 / 3){
-        NS_LOG_UNCOND("UE é um Carro");
+    else if (imsi <= m_numberOfUEs * 2 / 3)
         GetPositions(imsi, "mobil/carroTrace.tcl");
-    }
-    else {
-        NS_LOG_UNCOND("UE é um Onibus");
+    else
         GetPositions(imsi, "mobil/onibusTrace.tcl");
-    }
-    
-   mobilityFile.close();
 }
 
 void AhpHandoverAlgorithm::UpdateNeighbourMeasurements(uint16_t rnti,
@@ -476,3 +488,4 @@ void AhpHandoverAlgorithm::UpdateNeighbourMeasurements(uint16_t rnti,
 } // end of UpdateNeighbourMeasurements
 
 } // end of namespace ns3
+

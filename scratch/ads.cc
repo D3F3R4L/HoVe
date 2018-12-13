@@ -144,7 +144,7 @@ main (int argc, char *argv[])
   std::string phyRate = "HtMcs7";                    /* Physical layer bitrate. */
 
   uint16_t seed = 1000; // random seed
-  std::string handoverAlg = "a2a4"; //handover algorithm
+  std::string handoverAlg = "noop"; //handover algorithm
 
   uint16_t select = 0; // scheduler selection
 

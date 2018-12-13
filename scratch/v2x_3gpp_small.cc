@@ -70,9 +70,9 @@ using namespace ns3;
 double TxRate = 0; // TAXA DE RECEBIMENTO DE PACOTES
 bool useCbr = false;
 
-const int pedestres = 10;
-const int carros = 10;
-const int trens = 10;
+const int pedestres = 1;
+const int carros = 1;
+const int trens = 1;
 
 const int node_ue = pedestres + carros + trens;
 
@@ -286,7 +286,9 @@ void NotifyHandoverEndOkEnb(std::string context,
 
 void ArrayPositionAllocator(Ptr<ListPositionAllocator> HpnPosition, int distance)
 {
-    if (luca) {
+    int x, y;
+    std::ofstream outfile("cellsList", std::ios::out | std::ios::trunc);
+    if (luca) { // enbs em fila
         int x_start = 700;
         int y_start = 500;
         for (int i = 0; i < enb_HPN + low_power + hot_spot; ++i)
@@ -297,15 +299,19 @@ void ArrayPositionAllocator(Ptr<ListPositionAllocator> HpnPosition, int distance
         return;
     }
 
-    if (journal){
-        for (int i = 0; i < enb_HPN + low_power + hot_spot; ++i)
-            HpnPosition->Add(Vector(rand() % distance * 4,rand() % distance - 500, 10));
-
-        for (int i = 0; i <= low_power; ++i)
-            HpnPosition->Add(Vector(rand() % distance,rand() % distance, 10));
+    if (journal){ // random positions, currently this is the only one that shoud be used
+                  // for real, nothing will work for the other ones
+        for (int i = 0; i < enb_HPN + low_power + hot_spot; ++i) {
+            x = rand() % 2000;
+            y = rand() % 2000;
+            HpnPosition->Add(Vector(x, y, 30));
+            outfile << i + 1 << " " << x << " " << y << std::endl;
+        }
+        outfile.close();
         return;
     }
 
+    /* enbs seguem padrão hexagonal do 3gpp*/
     int x_start = 1000;
     int y_start = 1000;
 
@@ -756,12 +762,12 @@ int main(int argc, char* argv[])
     MobilityHelper mobilityEnb;
     mobilityEnb.SetMobilityModel("ns3::ConstantPositionMobilityModel");
     mobilityEnb.SetPositionAllocator(HpnPosition);
-    //mobilityEnb.Install(enbNodes);
+    mobilityEnb.Install(enbNodes);
 
     MobilityHelper mobilityCbr;
     mobilityEnb.SetMobilityModel("ns3::ConstantPositionMobilityModel");
     mobilityEnb.SetPositionAllocator(HpnPosition);
-    //mobilityEnb.Install(cbr_nodes);
+    mobilityEnb.Install(cbr_nodes);
 
     // LogComponentEnable("Ns2MobilityHelper", LOG_LEVEL_DEBUG);
 
@@ -793,13 +799,13 @@ int main(int argc, char* argv[])
                                  "Y", StringValue ("ns3::UniformRandomVariable[Min=0|Max=2000]"));
   ueMobility.Install(trens_nc);
   */
-  enbMobility.SetMobilityModel ("ns3::ConstantVelocityMobilityModel");
-  enbMobility.SetPositionAllocator ("ns3::RandomRectanglePositionAllocator",
-                                 "X", StringValue ("ns3::UniformRandomVariable[Min=0|Max=2000]"),
-                                 "Y", StringValue ("ns3::UniformRandomVariable[Min=0|Max=2000]"));
-  
-  enbMobility.Install(enbNodes);
-  enbMobility.Install(cbr_nodes);
+  // enbMobility.SetMobilityModel ("ns3::ConstantVelocityMobilityModel");
+  // enbMobility.SetPositionAllocator ("ns3::RandomRectanglePositionAllocator",
+  //                                "X", StringValue ("ns3::UniformRandomVariable[Min=0|Max=2000]"),
+  //                                "Y", StringValue ("ns3::UniformRandomVariable[Min=0|Max=2000]"));
+  // 
+  // enbMobility.Install(enbNodes);
+  // enbMobility.Install(cbr_nodes);
  
   /* 
   // setup a uniform random variable for the speed

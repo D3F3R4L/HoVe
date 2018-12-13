@@ -34,6 +34,7 @@
 #include <ns3/simple-ref-count.h>
 #include <ns3/ptr.h>
 #include <map>
+#include <memory>
 #include <ns3/nstime.h>
 
 namespace ns3 {
@@ -106,6 +107,7 @@ protected:
 
 private:
 
+  double dist[100][100];
   Time m_timeToTrigger;
   double  m_threshold;
   /**
@@ -117,7 +119,8 @@ private:
    void EvaluateHandover(uint16_t rnti,
        uint8_t servingCellRsrq, uint16_t measId, uint16_t servingCellId);
    void PredictPositions (uint16_t imsi);
-   double GetPositions(int imsi, std::string path);
+   // double *GetPositions(int imsi, std::string path);
+   void GetPositions(int imsi, std::string path);
          /**
    * Determines if a neighbour cell is a valid destination for handover.
    * Currently always return true.
