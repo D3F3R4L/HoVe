@@ -27,9 +27,9 @@
 #include "ns3/flow-monitor-helper.h"
 #include "ns3/internet-module.h"
 #include "ns3/mobility-module.h"
- #include "ns3/packet-sink.h"
- #include "ns3/packet-sink-helper.h"
- #include "ns3/on-off-helper.h"
+#include "ns3/packet-sink.h"
+#include "ns3/packet-sink-helper.h"
+#include "ns3/on-off-helper.h"
 #include "ns3/network-module.h"
 #include "ns3/netanim-module.h"
 #include "ns3/config-store.h"
@@ -114,16 +114,11 @@ void NotifyHandoverEndOkEnb(std::string context,
 void
 CalculateThroughput ()
 {
-  std::ofstream outfile("throughput.out",  std::ofstream::app);
-
   Time now = Simulator::Now ();                                         /* Return the simulator's virtual time. */
   double cur = (sink->GetTotalRx () - lastTotalRx) * (double) 8 / 1e5;     /* Convert Application RX Packets to MBits. */
-  outfile << now.GetSeconds () << " s : \t" << cur << " Mbit/s" << std::endl;
+  std::cout << now.GetSeconds ()  * 20 << "m : \t" << cur << " Mbit/s"<< std::endl;
   lastTotalRx = sink->GetTotalRx ();
-  Simulator::Schedule (MilliSeconds (100), &CalculateThroughput);
-
-  outfile.flush();
-  outfile.close();
+  Simulator::Schedule (MilliSeconds (250), &CalculateThroughput);
 }
 
 
@@ -131,12 +126,11 @@ int
 main (int argc, char *argv[])
 {
   uint16_t numberOfUeNodes = 1; // number of mobile devices
-  uint16_t numberOfEnbNodes = 4; // number of ENBs
+  uint16_t numberOfEnbNodes = 1; // number of ENBs
   bool nodeMobilitySpeed = true; // gotta go fast
   uint16_t nodeSpeed = 20; // node's velocity
   double simTime = 150; // simulation time
   double distance = 1000.0; // distance between cells
-  double interPacketInterval = 1000; // time between  packets
 
   uint32_t payloadSize = 1472;                       /* Transport layer payload size in bytes. */
   std::string dataRate = "100Mbps";                  /* Application layer datarate. */
@@ -144,15 +138,17 @@ main (int argc, char *argv[])
   std::string phyRate = "HtMcs7";                    /* Physical layer bitrate. */
 
   uint16_t seed = 1000; // random seed
-  std::string handoverAlg = "noop"; //handover algorithm
-
-  uint16_t select = 0; // scheduler selection
+  std::string handoverAlg = "a2a4"; //handover algorithm
+  uint16_t lossModel = 0; // PathLoss selection
+  uint16_t select = 1; // scheduler selection
 
   // Parse command line arguments
   CommandLine cmd;
   cmd.AddValue("seed", "Simulation Random Seed", seed);
   cmd.AddValue("handoverAlg", "Handover Algorithm Used", handoverAlg);
-  cmd.AddValue("select","Select the scheduler type",select);
+  cmd.AddValue("select","Select the scheduler type", select);
+  cmd.AddValue("loss", "Propagation loss model", lossModel);
+  cmd.AddValue("nodes","Number of nodes in the simulation", numberOfUeNodes);
   cmd.Parse (argc, argv);
 
   // scheduler definition
@@ -182,12 +178,29 @@ main (int argc, char *argv[])
      }
    else
      {
-       NS_LOG_ERROR ("Invalid scheduler type.  Values must be [0-5], where 0=RR 1=MT ;2=TTA;3=BET;4=TBFQ;5=PSS");
+       NS_LOG_ERROR ("Invalid scheduler type.  Values must be [0-5], where 0=None 1=MT ;2=TTA;3=BET;4=TBFQ;5=PSS");
      }
 
   // path loss model
-  lteHelper->SetAttribute("PathlossModel",
+   if (lossModel == 0)
+     {
+      lteHelper->SetAttribute("PathlossModel",
        StringValue("ns3::FriisPropagationLossModel"));
+     } 
+   else if (lossModel == 1)
+     {
+      lteHelper->SetAttribute("PathlossModel",
+       StringValue("ns3::Cost231PropagationLossModel"));
+     }
+   else if (lossModel == 2)
+     {
+      lteHelper->SetAttribute("PathlossModel",
+       StringValue("ns3::OkumuraHataPropagationLossModel"));
+     }
+   else
+     {
+       NS_LOG_ERROR ("Invalid pathloss model.  Values must be [0-2], where 0=Friss 1=Cost231 ;2=OH");
+     }
 
   // set frequency bands
   Config::SetDefault ("ns3::LteUeNetDevice::DlEarfcn", UintegerValue (100));
@@ -241,7 +254,6 @@ main (int argc, char *argv[])
   ipv4h.SetBase ("1.0.0.0", "255.0.0.0");
   Ipv4InterfaceContainer internetIpIfaces = ipv4h.Assign (internetDevices);
   // interface 0 is localhost, 1 is the p2p device
-  Ipv4Address remoteHostAddr = internetIpIfaces.GetAddress (1);
 
   Ipv4StaticRoutingHelper ipv4RoutingHelper;
   Ptr<Ipv4StaticRouting> remoteHostStaticRouting = ipv4RoutingHelper.GetStaticRouting (remoteHost->GetObject<Ipv4> ());
@@ -261,7 +273,7 @@ main (int argc, char *argv[])
     }
   for (uint16_t i = 0; i < numberOfUeNodes; i++)
     {
-      uePositionAlloc->Add (Vector(distance * i, 0, 1));
+      uePositionAlloc->Add (Vector(0,50*i, 1));
     }
   MobilityHelper mobility;
 
@@ -303,66 +315,26 @@ main (int argc, char *argv[])
 
   // Attach one UE per eNodeB
   lteHelper->Attach(ueLteDevs);
-  /* Install TCP Receiver on the access point */
-  PacketSinkHelper sinkHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), 9));
-  ApplicationContainer sinkApp = sinkHelper.Install (ueNodes.Get(0));
-  sink = StaticCast<PacketSink> (sinkApp.Get (0));
 
-  /* Install TCP/UDP Transmitter on the station */
-  OnOffHelper server ("ns3::TcpSocketFactory", (InetSocketAddress (ueIpIface.GetAddress (0), 9)));
-  server.SetAttribute ("PacketSize", UintegerValue (payloadSize));
-  server.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=1]"));
-  server.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=0]"));
-  server.SetAttribute ("DataRate", DataRateValue (DataRate (dataRate)));
-  ApplicationContainer serverApp = server.Install (remoteHost);
+  for (uint32_t u = 0; u < ueNodes.GetN (); ++u)
+    {
+      /* Install TCP Receiver on the access point */
+    PacketSinkHelper sinkHelper ("ns3::TcpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), 9));
+    ApplicationContainer sinkApp = sinkHelper.Install (ueNodes.Get(u));
+    sink = StaticCast<PacketSink> (sinkApp.Get (0));
+    
+    /* Install TCP/UDP Transmitter on the station */
+    OnOffHelper server ("ns3::TcpSocketFactory", (InetSocketAddress (ueIpIface.GetAddress (u), 9)));
+    server.SetAttribute ("PacketSize", UintegerValue (payloadSize));
+    server.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=1]"));
+    server.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=0]"));
+    server.SetAttribute ("DataRate", DataRateValue (DataRate (dataRate)));
+    ApplicationContainer serverApp = server.Install (remoteHost);
 
   /* Start Applications */
   sinkApp.Start (Seconds (0.0));
   serverApp.Start (Seconds (1.0));
-  Simulator::Schedule (Seconds (1.1), &CalculateThroughput);
-
-  // Install and start applications on UEs and remote host
-  uint16_t dlPort = 1234;
-  uint16_t ulPort = 2000;
-  uint16_t otherPort = 3000;
-  ApplicationContainer clientApps;
-  ApplicationContainer serverApps;
-  for (uint32_t u = 0; u < ueNodes.GetN (); ++u)
-    {
-      ++ulPort;
-      ++otherPort;
-      PacketSinkHelper dlPacketSinkHelper ("ns3::UdpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), dlPort));
-      PacketSinkHelper ulPacketSinkHelper ("ns3::UdpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), ulPort));
-      PacketSinkHelper packetSinkHelper ("ns3::UdpSocketFactory", InetSocketAddress (Ipv4Address::GetAny (), otherPort));
-      serverApps.Add (dlPacketSinkHelper.Install (ueNodes.Get(u)));
-      serverApps.Add (ulPacketSinkHelper.Install (remoteHost));
-      serverApps.Add (packetSinkHelper.Install (ueNodes.Get(u)));
-
-      UdpClientHelper dlClient (ueIpIface.GetAddress (u), dlPort);
-      dlClient.SetAttribute ("Interval", TimeValue (MilliSeconds(interPacketInterval)));
-      dlClient.SetAttribute ("MaxPackets", UintegerValue(1000000));
-
-      UdpClientHelper ulClient (remoteHostAddr, ulPort);
-      ulClient.SetAttribute ("Interval", TimeValue (MilliSeconds(interPacketInterval)));
-      ulClient.SetAttribute ("MaxPackets", UintegerValue(1000000));
-
-      UdpClientHelper client (ueIpIface.GetAddress (u), otherPort);
-      client.SetAttribute ("Interval", TimeValue (MilliSeconds(interPacketInterval)));
-      client.SetAttribute ("MaxPackets", UintegerValue(1000000));
-
-      clientApps.Add (dlClient.Install (remoteHost));
-      clientApps.Add (ulClient.Install (ueNodes.Get(u)));
-      if (u+1 < ueNodes.GetN ())
-        {
-          clientApps.Add (client.Install (ueNodes.Get(u+1)));
-        }
-      else
-        {
-          clientApps.Add (client.Install (ueNodes.Get(0)));
-        }
     }
-  serverApps.Start (Seconds (0.01));
-  clientApps.Start (Seconds (0.01));
 
   lteHelper->EnableTraces ();
   lteHelper->AddX2Interface (enbNodes);

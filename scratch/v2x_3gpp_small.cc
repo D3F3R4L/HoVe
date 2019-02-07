@@ -70,9 +70,9 @@ using namespace ns3;
 double TxRate = 0; // TAXA DE RECEBIMENTO DE PACOTES
 bool useCbr = false;
 
-const int pedestres = 1;
-const int carros = 1;
-const int trens = 1;
+const int pedestres = 10;
+const int carros = 10;
+const int trens = 10;
 
 const int node_ue = pedestres + carros + trens;
 
@@ -80,8 +80,8 @@ const int node_ue = pedestres + carros + trens;
 // 1 hpn para cenário do journal
 // 7 hpn para cenário monte carlo
 //7 low power para cenários wgrs e 77 para monte carlo
-const uint16_t enb_HPN = 2;
-const uint16_t low_power = 10; //
+const uint16_t enb_HPN = 1;
+const uint16_t low_power = 11; //
 const uint16_t hot_spot = 0;
 
 const int node_enb = enb_HPN + low_power + hot_spot;
