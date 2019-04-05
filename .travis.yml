@@ -1,0 +1,29 @@
+i# NS3 is disabled because the version in ubuntu precise does not lead
+# to the same timings (precision error?)
+# Reenable with 
+#   cmake -Denable_ns3
+#   apt-get libns3-dev ns3
+#
+#
+dist: xenial
+language: cpp
+compiler:
+   - gcc
+#  - clang 
+jdk:
+   - openjdk11
+addons:
+  apt:
+    update: true
+    allow_unauthenticated: yes
+    packages:
+    - python
+    - python-dev
+
+before_install:
+    - ./waf configure
+
+script:
+    - ./waf
+os:
+- linux
