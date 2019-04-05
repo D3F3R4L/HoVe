@@ -116,9 +116,9 @@ using namespace ns3;
 double TxRate = 0; // TAXA DE RECEBIMENTO DE PACOTES
 bool useCbr = false;
 
-const int pedestres = 60;
-const int carros = 60;
-const int trens = 60;
+const int pedestres = 1;
+const int carros = 1;
+const int trens = 1;
 
 const int node_ue = pedestres + carros + trens;
 
@@ -127,7 +127,7 @@ const int node_ue = pedestres + carros + trens;
 // 7 hpn para cenário monte carlo
 //7 low power para cenários wgrs e 77 para monte carlo
 const uint16_t enb_HPN = 1;
-const uint16_t low_power = 80;
+const uint16_t low_power = 3;
 const uint16_t hot_spot = 0;
 
 const int node_enb = enb_HPN + low_power + hot_spot;
@@ -149,7 +149,7 @@ int transmissionStart = 5;
 unsigned int handNumber = 0;
 
 //scenario
-bool luca = false;
+bool rowTopology = false;
 bool journal = true;
 
 //coeficiente da média exponencial
@@ -289,7 +289,7 @@ void ArrayPositionAllocator(Ptr<ListPositionAllocator> HpnPosition, int distance
 {
     int x, y;
     std::ofstream outfile("cellsList", std::ios::out | std::ios::trunc);
-    if (luca) { // enbs em fila
+    if (rowTopology) { // enbs em fila
         int x_start = 700;
         int y_start = 500;
         for (int i = 0; i < enb_HPN + low_power + hot_spot; ++i)
@@ -303,8 +303,8 @@ void ArrayPositionAllocator(Ptr<ListPositionAllocator> HpnPosition, int distance
     if (journal){ // random positions, currently this is the only one that shoud be used
                   // for real, nothing will work for the other ones
         for (int i = 0; i < enb_HPN + low_power + hot_spot; ++i) {
-            x = rand() % 1000;
-            y = rand() % 1000;
+            x = rand() % 2000;
+            y = rand() % 2000;
             HpnPosition->Add(Vector(x, y, 30));
             outfile << i + 1 << " " << x << " " << y << std::endl;
         }
@@ -588,7 +588,7 @@ int main(int argc, char* argv[])
     /*---------------------CRIAÇÃO DE OBJETOS ÚTEIS-----------------*/
 
     int seedValue = 1;
-    std::string handoverAlg = "ahp";
+    std::string handoverAlg = "hove";
     /*--------------------- COMMAND LINE PARSING -------------------*/
     CommandLine cmm;
     cmm.AddValue("seedValue", "valor de seed para aleatoriedade", seedValue);
@@ -601,16 +601,10 @@ int main(int argc, char* argv[])
     double interPacketInterval = 0.001;
     VideoTraceParse(video_st);
 
-    // void WriteMetrics();
-
-
-
-    // Logs
-
     LogComponentEnable("v2x_3gpp", LOG_LEVEL_DEBUG);
     LogComponentEnable("v2x_3gpp", LOG_LEVEL_INFO);
-    LogComponentEnable("AhpHandoverAlgorithm", LOG_LEVEL_INFO);
-    LogComponentEnable("AhpHandoverAlgorithm", LOG_LEVEL_DEBUG);
+    LogComponentEnable("HoveHandoverAlgorithm", LOG_LEVEL_INFO);
+    LogComponentEnable("HoveHandoverAlgorithm", LOG_LEVEL_DEBUG);
     LogComponentEnable("EvalvidClient", LOG_LEVEL_INFO);
 
     //-------------Parâmetros da simulação
@@ -650,8 +644,13 @@ int main(int argc, char* argv[])
         StringValue("ns3::NakagamiPropagationLossModel"));
 
     /*----------------------ALGORITMO DE HANDOVER----------------------*/
-    if (handoverAlg == "ahp") {
-        lteHelper->SetHandoverAlgorithmType("ns3::AhpHandoverAlgorithm");
+    if (handoverAlg == "hove") {
+        lteHelper->SetHandoverAlgorithmType("ns3::HoveHandoverAlgorithm");
+        lteHelper->SetHandoverAlgorithmAttribute("NumberOfUEs", UintegerValue(node_ue));
+    }
+
+    else if (handoverAlg == "ser") {
+        lteHelper->SetHandoverAlgorithmType("ns3::SerHandoverAlgorithm");
         lteHelper->SetHandoverAlgorithmAttribute("NumberOfUEs", UintegerValue(node_ue));
     }
 
@@ -707,7 +706,7 @@ int main(int argc, char* argv[])
     p2ph.SetDeviceAttribute("DataRate", DataRateValue(DataRate("100Gb/s")));
     p2ph.SetDeviceAttribute("Mtu", UintegerValue(1400));
     p2ph.SetChannelAttribute("Delay", TimeValue(Seconds(0.010)));
-    p2ph.EnablePcapAll("ahp-handover");
+    p2ph.EnablePcapAll("hove-handover");
     NetDeviceContainer internetDevices = p2ph.Install(pgw, remoteHost);
 
     // Determina endereço ip para o Link
@@ -784,59 +783,10 @@ int main(int argc, char* argv[])
   Ns2MobilityHelper mobil_trem = Ns2MobilityHelper("mobil/onibusTrace.tcl");
   MobilityHelper ueMobility;  
   MobilityHelper enbMobility;  
-  /*
-  // Set a constant velocity mobility model
-  ueMobility.SetMobilityModel ("ns3::ConstantVelocityMobilityModel");
-  ueMobility.SetPositionAllocator ("ns3::RandomRectanglePositionAllocator",
-                                 "X", StringValue ("ns3::UniformRandomVariable[Min=0|Max=2000]"),
-                                 "Y", StringValue ("ns3::UniformRandomVariable[Min=0|Max=2000]"));
-  ueMobility.Install(pedestres_nc);
-  ueMobility.SetPositionAllocator ("ns3::RandomRectanglePositionAllocator",
-                                 "X", StringValue ("ns3::UniformRandomVariable[Min=0|Max=2000]"),
-                                 "Y", StringValue ("ns3::UniformRandomVariable[Min=0|Max=2000]"));
-  ueMobility.Install(carros_nc);
-  ueMobility.SetPositionAllocator ("ns3::RandomRectanglePositionAllocator",
-                                 "X", StringValue ("ns3::UniformRandomVariable[Min=0|Max=2000]"),
-                                 "Y", StringValue ("ns3::UniformRandomVariable[Min=0|Max=2000]"));
-  ueMobility.Install(trens_nc);
-  */
-  // enbMobility.SetMobilityModel ("ns3::ConstantVelocityMobilityModel");
-  // enbMobility.SetPositionAllocator ("ns3::RandomRectanglePositionAllocator",
-  //                                "X", StringValue ("ns3::UniformRandomVariable[Min=0|Max=2000]"),
-  //                                "Y", StringValue ("ns3::UniformRandomVariable[Min=0|Max=2000]"));
-  // 
-  // enbMobility.Install(enbNodes);
-  // enbMobility.Install(cbr_nodes);
- 
-  /* 
-  // setup a uniform random variable for the speed
-  Ptr<UniformRandomVariable> rvar = CreateObject<UniformRandomVariable>();
-  
-  // for each node set up its speed according to the random variable
-  for (NodeContainer::Iterator iter= pedestres_nc.Begin(); iter!=pedestres_nc.End(); ++iter){
-    Ptr<Node> tmp_node = (*iter);
-    // select the speed from (15,25) m/s
-    double speed = rvar->GetValue(10, 0);
-    tmp_node->GetObject<ConstantVelocityMobilityModel>()->SetVelocity(Vector(speed, speed, 0));
-  }
-  for (NodeContainer::Iterator iter= carros_nc.Begin(); iter!=carros_nc.End(); ++iter){
-    Ptr<Node> tmp_node = (*iter);
-    // select the speed from (15,25) m/s
-    double speed = rvar->GetValue(19, 20);
-    tmp_node->GetObject<ConstantVelocityMobilityModel>()->SetVelocity(Vector(speed, speed, 0));
-  }
-  for (NodeContainer::Iterator iter= trens_nc.Begin(); iter!=trens_nc.End(); ++iter){
-    Ptr<Node> tmp_node = (*iter);
-    // select the speed from (15,25) m/s
-    double speed = rvar->GetValue(0, 40);
-    tmp_node->GetObject<ConstantVelocityMobilityModel>()->SetVelocity(Vector(speed, speed, 0));
-  }
-  */
 
   mobil_ped.Install(pedestres_nc.Begin(), pedestres_nc.End());
   mobil_carro.Install(carros_nc.Begin(), carros_nc.End());
   mobil_trem.Install(trens_nc.Begin(), trens_nc.End());
-  /*----------------------------------------------------------------------*/
 
     //-------------Instala LTE Devices para cada grupo de nós
     NetDeviceContainer enbLteDevs;
@@ -937,7 +887,7 @@ int main(int argc, char* argv[])
 
     //-------------Anexa as UEs na eNodeB
 
-    if (handoverAlg == "ahp"){
+    if (handoverAlg == "hove"){
       lteHelper->AttachToClosestEnb(pedLteDevs, enbLteDevs);
       lteHelper->AttachToClosestEnb(carLteDevs, enbLteDevs);
       lteHelper->AttachToClosestEnb(tremLteDevs, enbLteDevs);

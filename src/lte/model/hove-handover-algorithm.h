@@ -25,8 +25,8 @@
  * - Budiarto Herman <budiarto.herman@magister.fi>
  */
 
-#ifndef AHP_HANDOVER_ALGORITHM_H
-#define AHP_HANDOVER_ALGORITHM_H
+#ifndef HOVE_HANDOVER_ALGORITHM_H
+#define HOVE_HANDOVER_ALGORITHM_H
 
 #include <ns3/lte-handover-algorithm.h>
 #include <ns3/lte-handover-management-sap.h>
@@ -68,7 +68,7 @@ namespace ns3 {
  *     NodeContainer enbNodes;
  *     // configure the nodes here...
  *
- *     lteHelper->SetHandoverAlgorithmType ("ns3::AhpHandoverAlgorithm");
+ *     lteHelper->SetHandoverAlgorithmType ("ns3::HoveHandoverAlgorithm");
  *     lteHelper->SetHandoverAlgorithmAttribute ("ServingCellThreshold",
  *                                               UintegerValue (30));
  *     lteHelper->SetHandoverAlgorithmAttribute ("NeighbourCellOffset",
@@ -79,13 +79,13 @@ namespace ns3 {
  *       LteHelper::InstallEnbDevice does not have any effect to the devices
  *       that have already been installed.
  */
-class AhpHandoverAlgorithm : public LteHandoverAlgorithm
+class HoveHandoverAlgorithm : public LteHandoverAlgorithm
 {
 public:
   /// Creates an A2-A4-RSRQ handover algorithm instance.
-  AhpHandoverAlgorithm ();
+  HoveHandoverAlgorithm ();
 
-  virtual ~AhpHandoverAlgorithm ();
+  virtual ~HoveHandoverAlgorithm ();
 
   // inherited from Object
   static TypeId GetTypeId ();
@@ -95,7 +95,7 @@ public:
   virtual LteHandoverManagementSapProvider* GetLteHandoverManagementSapProvider ();
 
   // let the forwarder class access the protected and private members
-  friend class MemberLteHandoverManagementSapProvider<AhpHandoverAlgorithm>;
+  friend class MemberLteHandoverManagementSapProvider<HoveHandoverAlgorithm>;
 
 protected:
   // inherited from Object
@@ -198,7 +198,7 @@ private:
   /// Receive API calls from the eNodeB RRC instance.
   LteHandoverManagementSapProvider* m_handoverManagementSapProvider;
 
-}; // end of class AhpHandoverAlgorithm
+}; // end of class HoveHandoverAlgorithm
 
 
 } // end of namespace ns3
