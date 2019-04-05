@@ -59,64 +59,11 @@
 #include <memory>
 #include <typeinfo>
 
-//we'll use that for cell allocation
+// Used for cell allocation
 #include <math.h>
 #define PI 3.14159265
 
 #define SIMULATION_TIME_FORMAT(s) Seconds(s)
-
-using namespace ns3;
-
-double TxRate = 0; // TAXA DE RECEBIMENTO DE PACOTES
-bool useCbr = false;
-
-const int pedestres = 10;
-const int carros = 10;
-const int trens = 10;
-
-const int node_ue = pedestres + carros + trens;
-
-// 3 hpn para cenário wgrs
-// 1 hpn para cenário do journal
-// 7 hpn para cenário monte carlo
-//7 low power para cenários wgrs e 77 para monte carlo
-const uint16_t enb_HPN = 1;
-const uint16_t low_power = 11; //
-const uint16_t hot_spot = 0;
-
-const int node_enb = enb_HPN + low_power + hot_spot;
-
-int cell_ue[enb_HPN + low_power + hot_spot][node_ue]; // matriz de conexões
-
-uint16_t n_cbr = useCbr?enb_HPN+low_power:0;
-
-int hpnTxPower = 46;
-int lpnTxPower = 33;
-int hpTxPower  = 15;
-
-int distancia  = 1000; //distância entre torres HPN (mínima)
-
-double simTime = 80.0; // TEMPO_SIMULAÇÃO
-int transmissionStart = 5;
-
-// número de handovers realizados
-unsigned int handNumber = 0;
-
-//scenario
-bool luca = false;
-bool journal = true;
-
-//coeficiente da média exponencial
-unsigned int exp_mean_window = 3;
-double qosLastValue = 0;
-double qoeLastValue = 0;
-int evalvidId = 0;
-
-double qoeSum[enb_HPN + low_power + hot_spot];
-double qosSum[enb_HPN + low_power + hot_spot];
-int qosMetricsIterator[enb_HPN + low_power + hot_spot];
-int qoeMetricsIterator[enb_HPN + low_power + hot_spot];
-
 
 /*-----------------------VARIÁVEIS DO VÍDEO-----------------------*/
 // 1 PARA st_highway_cif
@@ -124,7 +71,7 @@ int qoeMetricsIterator[enb_HPN + low_power + hot_spot];
 // 3 PARA st_highway_600_cif
 // 4 PARA st_akiyo_cif_h264_300_18
 
-#define video 5
+#define video 1
 
 #if video == 1
   #define video_st "sourceTraces/st_highway_cif.st"
@@ -163,6 +110,60 @@ int qoeMetricsIterator[enb_HPN + low_power + hot_spot];
     #define gop 28
 
 #endif
+
+using namespace ns3;
+
+double TxRate = 0; // TAXA DE RECEBIMENTO DE PACOTES
+bool useCbr = false;
+
+const int pedestres = 60;
+const int carros = 60;
+const int trens = 60;
+
+const int node_ue = pedestres + carros + trens;
+
+// 3 hpn para cenário wgrs
+// 1 hpn para cenário do journal
+// 7 hpn para cenário monte carlo
+//7 low power para cenários wgrs e 77 para monte carlo
+const uint16_t enb_HPN = 1;
+const uint16_t low_power = 80;
+const uint16_t hot_spot = 0;
+
+const int node_enb = enb_HPN + low_power + hot_spot;
+
+int cell_ue[enb_HPN + low_power + hot_spot][node_ue]; // matriz de conexões
+
+uint16_t n_cbr = useCbr?enb_HPN+low_power:0;
+
+int hpnTxPower = 50;
+int lpnTxPower = 23;
+int hpTxPower  = 15;
+
+int distancia  = 1000; //distância entre torres HPN (mínima)
+
+double simTime = 200.0; // TEMPO_SIMULAÇÃO
+int transmissionStart = 5;
+
+// número de handovers realizados
+unsigned int handNumber = 0;
+
+//scenario
+bool luca = false;
+bool journal = true;
+
+//coeficiente da média exponencial
+unsigned int exp_mean_window = 3;
+double qosLastValue = 0;
+double qoeLastValue = 0;
+int evalvidId = 0;
+
+double qoeSum[enb_HPN + low_power + hot_spot];
+double qosSum[enb_HPN + low_power + hot_spot];
+int qosMetricsIterator[enb_HPN + low_power + hot_spot];
+int qoeMetricsIterator[enb_HPN + low_power + hot_spot];
+
+
 
 int framePct[numberOfFrames + 1];
 std::string frameTypeGlobal[numberOfFrames];
@@ -302,8 +303,8 @@ void ArrayPositionAllocator(Ptr<ListPositionAllocator> HpnPosition, int distance
     if (journal){ // random positions, currently this is the only one that shoud be used
                   // for real, nothing will work for the other ones
         for (int i = 0; i < enb_HPN + low_power + hot_spot; ++i) {
-            x = rand() % 2000;
-            y = rand() % 2000;
+            x = rand() % 1000;
+            y = rand() % 1000;
             HpnPosition->Add(Vector(x, y, 30));
             outfile << i + 1 << " " << x << " " << y << std::endl;
         }
@@ -597,7 +598,7 @@ int main(int argc, char* argv[])
     srand(seedValue);
 
 
-    double interPacketInterval = 0.00001;
+    double interPacketInterval = 0.001;
     VideoTraceParse(video_st);
 
     // void WriteMetrics();
@@ -620,8 +621,8 @@ int main(int argc, char* argv[])
 
     //*********** CONFIGURAÇÃO LTE ***************//
     // Bandwidth of Dl and Ul in Resource Blocks
-    Config::SetDefault("ns3::LteEnbNetDevice::DlBandwidth", UintegerValue(25));
-    Config::SetDefault("ns3::LteEnbNetDevice::UlBandwidth", UintegerValue(25));
+    Config::SetDefault("ns3::LteEnbNetDevice::DlBandwidth", UintegerValue(6));
+    Config::SetDefault("ns3::LteEnbNetDevice::UlBandwidth", UintegerValue(6));
 
     // Modo de transmissão (SISO [0], MIMO [1])
     Config::SetDefault("ns3::LteEnbRrc::DefaultTransmissionMode",
@@ -902,7 +903,7 @@ int main(int argc, char* argv[])
             "ns3::UdpSocketFactory",
             InetSocketAddress(Ipv4Address::GetAny(), cbrPort));
         serverApps.Add(packetSinkHelper.Install(cbr_nodes.Get(u)));
-        serverApps.Start(Seconds(transmissionStart));
+        serverApps.Start(Seconds(20));
 
 	int load = rand() % 512 + 1024;
         UdpClientHelper client(addri, cbrPort);
@@ -914,12 +915,13 @@ int main(int argc, char* argv[])
 
         clientApps.Add(client.Install(remoteHost));
 
-        clientApps.Start(Seconds(transmissionStart));
+        clientApps.Start(Seconds(20));
     }
 
     /*-----------------POTENCIA DE TRASMISSAO-----------------*/
     Ptr<LteEnbPhy> enb0Phy;
 
+    // todo: set different bandwidth for individual cells
     for (int i = 0; (unsigned)i < enbLteDevs.GetN(); i++) {
         enb0Phy = enbLteDevs.Get(i)->GetObject<LteEnbNetDevice>()->GetPhy();
         if (i < enb_HPN) {

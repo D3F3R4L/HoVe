@@ -224,10 +224,6 @@ void AhpHandoverAlgorithm::EvaluateHandover(uint16_t rnti,
         if (qoeRntiFile.is_open()) {
             while (qoeRntiFile >> qoeAtual) {
             }
-            // if (qoeAtual < 2)
-            //     threshold = 0;
-            if (qoeAtual > 3.5)
-                return;
         }
 
         if (qosRntiFile.is_open()) {
@@ -293,26 +289,9 @@ void AhpHandoverAlgorithm::EvaluateHandover(uint16_t rnti,
         else
             cell[i][2] = 0;
         cell[i][3] = servingCellId;
-        //if (cell[i][1] == 5)
-        //  return;
 
-        /*-----------------------RESULTADO NÃO NORMALIZADO-------------------*/
-
-        /*for (int i = 0; i < n_c; ++i)
-          for (int j = 0; j < n_p; ++j) soma[i] += cell[i][j]*eigenvector[j];*/
-        //if (imsi < 10)
-        //for (int i = 0; i < n_c; ++i){
-        //  soma[i] = cell[i][0] * 0.14;
-        //  soma[i] += cell[i][1] * 0.28;
-        //  soma[i] += cell[i][2] * 0.57;
-        //}
-        //else if (imsi < 10)
-        //for (int i = 0; i < n_c; ++i){
-        //  soma[i] = cell[i][0] * 0.5;
-        //  soma[i] += cell[i][1] * 0.25;
-        //  soma[i] += cell[i][2] * 0.25;
-        //}
-        //else
+        // multiplicação pelo autovetor [0.14 0.28 0.57]
+        // qos > qoe > sinal
         for (int i = 0; i < n_c; ++i) {
             soma[i] = cell[i][0] * 0.14;
             soma[i] += cell[i][1] * 0.28;
