@@ -116,9 +116,9 @@ using namespace ns3;
 double TxRate = 0; // TAXA DE RECEBIMENTO DE PACOTES
 bool useCbr = false;
 
-const int pedestres = 1;
-const int carros = 1;
-const int trens = 1;
+const int pedestres = 4;
+const int carros = 4;
+const int trens = 4;
 
 const int node_ue = pedestres + carros + trens;
 
@@ -127,7 +127,7 @@ const int node_ue = pedestres + carros + trens;
 // 7 hpn para cenário monte carlo
 //7 low power para cenários wgrs e 77 para monte carlo
 const uint16_t enb_HPN = 1;
-const uint16_t low_power = 3;
+const uint16_t low_power = 40;
 const uint16_t hot_spot = 0;
 
 const int node_enb = enb_HPN + low_power + hot_spot;
@@ -603,6 +603,8 @@ int main(int argc, char* argv[])
 
     LogComponentEnable("v2x_3gpp", LOG_LEVEL_DEBUG);
     LogComponentEnable("v2x_3gpp", LOG_LEVEL_INFO);
+    LogComponentEnable("LteEnbRrc", LOG_LEVEL_ALL);
+    LogComponentEnable("LteUeRrc", LOG_LEVEL_ALL);
     LogComponentEnable("HoveHandoverAlgorithm", LOG_LEVEL_INFO);
     LogComponentEnable("HoveHandoverAlgorithm", LOG_LEVEL_DEBUG);
     LogComponentEnable("EvalvidClient", LOG_LEVEL_INFO);
@@ -617,6 +619,8 @@ int main(int argc, char* argv[])
     // Bandwidth of Dl and Ul in Resource Blocks
     Config::SetDefault("ns3::LteEnbNetDevice::DlBandwidth", UintegerValue(6));
     Config::SetDefault("ns3::LteEnbNetDevice::UlBandwidth", UintegerValue(6));
+    Config::SetDefault ("ns3::LteSpectrumPhy::CtrlErrorModelEnabled", BooleanValue (false));
+    Config::SetDefault ("ns3::LteSpectrumPhy::DataErrorModelEnabled", BooleanValue (false));
 
     // Modo de transmissão (SISO [0], MIMO [1])
     Config::SetDefault("ns3::LteEnbRrc::DefaultTransmissionMode",
@@ -958,11 +962,11 @@ int main(int argc, char* argv[])
         MakeCallback(&NotifyHandoverEndOkUe));
 
     /*----------------PHY TRACES ------------------------------------*/
-    /*lteHelper->EnablePhyTraces();
+    lteHelper->EnablePhyTraces();
     lteHelper->EnableUlPhyTraces();
     lteHelper->EnableMacTraces();
     lteHelper->EnableRlcTraces();
-    lteHelper->EnablePdcpTraces();*/
+    lteHelper->EnablePdcpTraces();
 
     /*--------------------------- Simulation Run ---------------------------*/
     Simulator::Run(); // Executa

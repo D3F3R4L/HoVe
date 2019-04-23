@@ -169,6 +169,7 @@ void HoveHandoverAlgorithm::EvaluateHandover(uint16_t rnti,
     uint8_t servingCellRsrq, uint16_t measId, uint16_t servingCellId)
 {
     NS_LOG_FUNCTION(this << rnti << (uint16_t)servingCellRsrq);
+    std::cout << "aaaaaaaa";
 
     /*------------FIND MEASURES FOR GIVEN RNTI------------*/
     MeasurementTable_t::iterator it1;
@@ -178,7 +179,6 @@ void HoveHandoverAlgorithm::EvaluateHandover(uint16_t rnti,
         //NS_LOG_WARN("Skipping handover evaluation for RNTI " << rnti << " because neighbour cells information is not found");
     }
     else {
-        std::cout << "aaaaaaaa";
         static double tm = 0;
         MeasurementRow_t::iterator it2;
 
@@ -313,7 +313,7 @@ void HoveHandoverAlgorithm::EvaluateHandover(uint16_t rnti,
             for (int j = 0; j < 20; ++j)
                 dist_soma += dist[i][j];
             std::cout << "Node " << imsi << " is on average " << dist_soma/20  << " meters away from cell " << i + 1 << "\n";
-            soma[i] = soma[i] / (dist_soma/20);
+            soma[i] = soma[1] / dist_soma;
         }
 
         NS_LOG_INFO("\n\n\n------------------------------------------------------------------------");
