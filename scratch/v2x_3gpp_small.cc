@@ -116,9 +116,9 @@ using namespace ns3;
 double TxRate = 0; // TAXA DE RECEBIMENTO DE PACOTES
 bool useCbr = false;
 
-const int pedestres = 4;
-const int carros = 4;
-const int trens = 4;
+const int pedestres = 100;
+const int carros = 100;
+const int trens = 100;
 
 const int node_ue = pedestres + carros + trens;
 

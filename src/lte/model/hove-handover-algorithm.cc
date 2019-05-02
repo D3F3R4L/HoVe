@@ -77,7 +77,7 @@ HoveHandoverAlgorithm::GetTypeId()
                                 "Number of UEs in the simulation",
                                 UintegerValue(60),
                                 MakeUintegerAccessor(&HoveHandoverAlgorithm::m_numberOfUEs),
-                                MakeUintegerChecker<uint8_t>())
+                                MakeUintegerChecker<uint16_t>())
                             .AddAttribute("NeighbourCellOffset",
                                 "Minimum offset between the serving and the best neighbour "
                                 "cell to trigger the handover. Expressed in quantized "
