@@ -620,7 +620,8 @@ int main(int argc, char* argv[])
     Config::SetDefault("ns3::LteEnbNetDevice::DlBandwidth", UintegerValue(6));
     Config::SetDefault("ns3::LteEnbNetDevice::UlBandwidth", UintegerValue(6));
     Config::SetDefault ("ns3::LteSpectrumPhy::CtrlErrorModelEnabled", BooleanValue (false));
-    Config::SetDefault ("ns3::LteSpectrumPhy::DataErrorModelEnabled", BooleanValue (false));
+    if (handoverAlg == "hove")
+        Config::SetDefault ("ns3::LteSpectrumPhy::DataErrorModelEnabled", BooleanValue (false));
 
     // Modo de transmissão (SISO [0], MIMO [1])
     Config::SetDefault("ns3::LteEnbRrc::DefaultTransmissionMode",
