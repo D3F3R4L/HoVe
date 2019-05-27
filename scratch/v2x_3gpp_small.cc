@@ -116,9 +116,10 @@ using namespace ns3;
 double TxRate = 0; // TAXA DE RECEBIMENTO DE PACOTES
 bool useCbr = false;
 
-const int pedestres = 100;
-const int carros = 100;
-const int trens = 100;
+const int pedestres = 0;
+const int trens = 0;
+
+const int carros = 10;
 
 const int node_ue = pedestres + carros + trens;
 
@@ -126,8 +127,8 @@ const int node_ue = pedestres + carros + trens;
 // 1 hpn para cenário do journal
 // 7 hpn para cenário monte carlo
 //7 low power para cenários wgrs e 77 para monte carlo
-const uint16_t enb_HPN = 1;
-const uint16_t low_power = 40;
+const uint16_t enb_HPN = 10;
+const uint16_t low_power = 0;
 const uint16_t hot_spot = 0;
 
 const int node_enb = enb_HPN + low_power + hot_spot;
@@ -142,7 +143,7 @@ int hpTxPower  = 15;
 
 int distancia  = 1000; //distância entre torres HPN (mínima)
 
-double simTime = 200.0; // TEMPO_SIMULAÇÃO
+double simTime = 105; // TEMPO_SIMULAÇÃO
 int transmissionStart = 5;
 
 // número de handovers realizados
@@ -288,7 +289,7 @@ void NotifyHandoverEndOkEnb(std::string context,
 void ArrayPositionAllocator(Ptr<ListPositionAllocator> HpnPosition, int distance)
 {
     int x, y;
-    std::ofstream outfile("cellsList", std::ios::out | std::ios::trunc);
+    std::ofstream outfile("v2x_temp/cellsList", std::ios::out | std::ios::trunc);
     if (rowTopology) { // enbs em fila
         int x_start = 700;
         int y_start = 500;
@@ -577,7 +578,7 @@ void showPosition(Ptr<Node> node, double deltaTime)
 int main(int argc, char* argv[])
 {
     // Garantir mesma quantidade de nós de cda tipo
-    NS_ASSERT(pedestres == carros && carros == trens);
+    // NS_ASSERT(pedestres == carros && carros == trens);
     for (int u = 0; u < node_ue; ++u) {
         for (int i = 0; i < numberOfPackets; ++i)
             receivedPackets[u][i] = false;

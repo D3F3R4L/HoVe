@@ -169,7 +169,6 @@ void HoveHandoverAlgorithm::EvaluateHandover(uint16_t rnti,
     uint8_t servingCellRsrq, uint16_t measId, uint16_t servingCellId)
 {
     NS_LOG_FUNCTION(this << rnti << (uint16_t)servingCellRsrq);
-    std::cout << "aaaaaaaa";
 
     /*------------FIND MEASURES FOR GIVEN RNTI------------*/
     MeasurementTable_t::iterator it1;
@@ -193,7 +192,6 @@ void HoveHandoverAlgorithm::EvaluateHandover(uint16_t rnti,
         /*-----------------DEFINE PARAMETERS-----------------*/
         uint16_t bestNeighbourCellId = servingCellId;
         uint16_t bestNeighbourCellRsrq = 0;
-        //        uint8_t bestcell = 0;
 
         int i = 0;
 
@@ -260,7 +258,6 @@ void HoveHandoverAlgorithm::EvaluateHandover(uint16_t rnti,
                     cell[i][2] = stod(qosResult);
 
             cell[i][3] = it2->first;
-
             ++i;
         }
         /*-----------------current cell values-----------------*/
@@ -271,7 +268,6 @@ void HoveHandoverAlgorithm::EvaluateHandover(uint16_t rnti,
 
         qoeFileName << "./v2x_temp/qoeTorre" << servingCellId;
         qosFileName << "./v2x_temp/qosTorre" << servingCellId;
-
 
         std::ifstream qosFile(qosFileName.str());
         std::ifstream qoeFile(qoeFileName.str());
@@ -288,10 +284,14 @@ void HoveHandoverAlgorithm::EvaluateHandover(uint16_t rnti,
             cell[i][2] = 0;
         cell[i][3] = servingCellId;
 
+        for (int i = 0; i < n_c; ++i)
+            for (int j = 0; j < 4; ++j)
+                NS_LOG_UNCOND("linha " << i << " coluna " << j << ": " << cell[i][j]);
+
         // multiplicação pelo autovetor [0.14 0.28 0.57]
         // qos > qoe > sinal
         for (int i = 0; i < n_c; ++i) {
-            soma[i] =  cell[i][0] * 0.14;
+            soma[i] = cell[i][0] * 0.14;
             soma[i] += cell[i][1] * 0.28;
             soma[i] += cell[i][2] * 0.57;
         }
@@ -306,15 +306,25 @@ void HoveHandoverAlgorithm::EvaluateHandover(uint16_t rnti,
 
         // Iteraration of the mean distances for each cell in the next 20 seconds
         // todo: orgamize the distances in decreasing order
-        PredictPositions(imsi);
+        GetPositions(imsi, "mobil/carroTrace.tcl");
+
         int dist_soma = 0;
-        for (int i = 0; i < 12; ++i) {
+        for (int i = 0; i < n_c; ++i) {
             dist_soma = 0;
-            for (int j = 0; j < 20; ++j)
+            for (int j = 0; j < 20; ++j) {
                 dist_soma += dist[i][j];
-            std::cout << "Node " << imsi << " is on average " << dist_soma/20  << " meters away from cell " << i + 1 << "\n";
-            soma[i] = soma[1] / dist_soma;
+                NS_LOG_UNCOND("dist_soma" << dist_soma);
+                NS_LOG_UNCOND("dist " << dist[i][j]);
+            }
+            std::cout << "Node " << imsi << " is on average " << dist_soma / 20 << " meters away from cell " << i + 1 << "\n";
+            if (dist_soma)
+              soma[i] = soma[1] / dist_soma;
         }
+
+        NS_LOG_UNCOND("----------");
+        for (int i = 0; i < n_c; ++i)
+            for (int j = 0; j < 4; ++j)
+                NS_LOG_UNCOND("linha " << i << " coluna " << j << ": " << cell[i][j]);
 
         NS_LOG_INFO("\n\n\n------------------------------------------------------------------------");
         NS_LOG_INFO("Measured at: " << Simulator::Now().GetSeconds() << " Seconds.\nIMSI:" << imsi << "\nRNTI: " << rnti << "\n");
@@ -329,6 +339,9 @@ void HoveHandoverAlgorithm::EvaluateHandover(uint16_t rnti,
         }
         NS_LOG_INFO("\n\nBest Neighbor Cell ID: " << bestNeighbourCellId);
 
+        for (int i = 0; i < n_c; ++i) {
+            NS_LOG_UNCOND("célula " << cell[i][3]);
+        }
         /*-----------------------------EXECUÇÃO DO HANDOVER-----------------------------*/
 
         if (bestNeighbourCellId != servingCellId && bestNeighbourCellRsrq > servingCellRsrq) {
@@ -352,77 +365,41 @@ bool HoveHandoverAlgorithm::IsValidNeighbour(uint16_t cellId)
 {
     NS_LOG_FUNCTION(this << cellId);
 
-    /**
-   * \todo In the future, this function can be expanded to validate whether the
-   *       neighbour cell is a valid target cell, e.g., taking into account the
-   *       NRT in ANR and whether it is a CSG cell with closed access.
-   */
-
     return true;
 }
 
-// function to read mobility files and store them in an array
 void HoveHandoverAlgorithm::GetPositions(int imsi, std::string path) 
 {
-    // coordenadas
     double x, y, z;
-    // variaveis auxiliares para a leitura dos arquivos
     std::string aux1, aux2, aux3, aux4, aux5;
     std::string aux_l1, aux_l2, aux_l3;
-
-    // implementação com ponteiros
-    // double dist[100][100];
-    // std::unique_ptr<double[][20]> dist(new double[12][20]);
-
-    // objeto do arquivo do sumo
     std::ifstream mobilityFile;
 
-    // abertura para leitura
     mobilityFile.open(path, std::ios::in);
     if (mobilityFile.is_open()) {
-        // variavel para armazenar a linha atual
         std::string line;
-        // enquanto houver linhas
         while (getline(mobilityFile, line)) {
-            // string a ser procurada
             std::stringstream at;
             at << "$node_(" << imsi - 1 << ") setdest";
-
-            // se não houver match, não fazer nada
             if (line.find(at.str()) == std::string::npos) {}
             else {
-                // separar as colunas da linha
                 std::istringstream ss(line);
                 ss >> aux1 >> aux2 >> aux3 >> aux4 >> aux5 >> x >> y >> z;
-
-                // ler arquivo com as localizações das células
                 std::ifstream infile("cellsList");
-
                 if (stoi(aux3) >= (int) Simulator::Now().GetSeconds() && stoi(aux3) - Simulator::Now().GetSeconds() < 20){
                     int nc = 0;
                     while(infile >> aux_l1 >> aux_l2 >> aux_l3){
                         dist[nc][stoi(aux3)] = sqrt(pow(stod(aux_l2) - x,2) + pow(stod(aux_l3) - y, 2));
-                        //NS_LOG_UNCOND("node is " << sqrt(pow(stod(aux_l2) - x,2) + pow(stod(aux_l3) - y, 2)) << " meters away from cell " << nc);
                         ++nc;
                     }
                 } // 
                 infile.close();
-            } // fim da iteração de matches
-        } // fim da iteração de linhas
-    } // fim da leitura do arquivo de mobilidade
+            }
+        }
+    }
     mobilityFile.close();
 
     return;
-}
-
-void HoveHandoverAlgorithm::PredictPositions(uint16_t imsi)
-{
-    if (imsi <= m_numberOfUEs / 3)
-        GetPositions(imsi, "mobil/taxisTrace.tcl");
-    else if (imsi <= m_numberOfUEs * 2 / 3)
-        GetPositions(imsi, "mobil/carroTrace.tcl");
-    else
-        GetPositions(imsi, "mobil/onibusTrace.tcl");
 }
 
 void HoveHandoverAlgorithm::UpdateNeighbourMeasurements(uint16_t rnti,
