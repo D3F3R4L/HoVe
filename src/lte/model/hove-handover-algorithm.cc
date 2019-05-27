@@ -27,7 +27,7 @@
  * Modified by: Lucas Pacheco <lucassidpacheco@gmail.com>
  */
 
-#include <math.h> // for de distance calculation
+#include <math.h>
 #include "hove-handover-algorithm.h"
 #include <ns3/log.h>
 #include <ns3/uinteger.h>
@@ -116,12 +116,6 @@ HoveHandoverAlgorithm::GetLteHandoverManagementSapProvider()
 void HoveHandoverAlgorithm::DoInitialize()
 {
     NS_LOG_FUNCTION(this);
-    /*MEDIDAS BASEADAS EM EVENTO A4, OU SEJA
-     *CÉLULA VIZINHA SE TORNA MELHOR QUE THRESHOLD.
-     *
-     *SE APLICA BEM A NOSSO ALGORITMO.
-     */
-
     NS_LOG_LOGIC(this << " requesting Event A4 measurements"
                       << " (threshold=0)");
 
@@ -130,7 +124,6 @@ void HoveHandoverAlgorithm::DoInitialize()
     reportConfig.threshold1.choice = LteRrcSap::ThresholdEutra::THRESHOLD_RSRQ;
     reportConfig.threshold1.range = 0; // THRESHOLD BAIXO FACILITA DETECÇÃO
     reportConfig.triggerQuantity = LteRrcSap::ReportConfigEutra::RSRQ;
-    //reportConfig.timeToTrigger = m_timeToTrigger.GetMilliSeconds();
     reportConfig.reportInterval = LteRrcSap::ReportConfigEutra::MS480;
     m_a4MeasId = m_handoverManagementSapUser->AddUeMeasReportConfigForHandover(reportConfig);
     LteHandoverAlgorithm::DoInitialize();
@@ -170,67 +163,60 @@ void HoveHandoverAlgorithm::EvaluateHandover(uint16_t rnti,
 {
     NS_LOG_FUNCTION(this << rnti << (uint16_t)servingCellRsrq);
 
-    /*------------FIND MEASURES FOR GIVEN RNTI------------*/
     MeasurementTable_t::iterator it1;
     it1 = m_neighbourCellMeasures.find(rnti);
 
     if (it1 == m_neighbourCellMeasures.end()) {
-        //NS_LOG_WARN("Skipping handover evaluation for RNTI " << rnti << " because neighbour cells information is not found");
     }
     else {
-        static double tm = 0;
         MeasurementRow_t::iterator it2;
+        int cell_iterator = 0;
 
-        /*------------ASSOCIATE RNTI WITH CELLID------------*/
         int imsi;
         std::stringstream rntiFileName;
         rntiFileName << "./v2x_temp/" << servingCellId << "/" << rnti;
         std::ifstream rntiFile(rntiFileName.str());
 
-        while (rntiFile >> imsi) {
-        }
-        /*-----------------DEFINE PARAMETERS-----------------*/
         uint16_t bestNeighbourCellId = servingCellId;
         uint16_t bestNeighbourCellRsrq = 0;
 
-        int i = 0;
-
-        int n_c = it1->second.size() + 1; //número de células
-
-        //características das células
+        int n_c = it1->second.size() + 1;
         double cell[it1->second.size() + 1][4];
-        //        double soma_rsrq;
         double soma[n_c];
         double soma_res = 0;
-
         double qosAtual = 0;
         double qoeAtual = 0;
-        //CURRENT QOE VALUE
+
+        std::stringstream qoeFileName;
+        std::stringstream qosFileName;
+        std::string qoeResult;
+        std::string qosResult;
 
         std::stringstream qoeRnti;
+        std::stringstream qosRnti;
+
+
+        while (rntiFile >> imsi) {}
+
         qoeRnti << "v2x_temp/qoeTorre" << servingCellId;
         std::ifstream qoeRntiFile;
         qoeRntiFile.open(qoeRnti.str());
 
-        //current qos value
-        std::stringstream qosRnti;
         qosRnti << "v2x_temp/qosTorre" << servingCellId;
         std::ifstream qosRntiFile;
         qosRntiFile.open(qosRnti.str());
 
         if (qoeRntiFile.is_open()) {
-            while (qoeRntiFile >> qoeAtual) {
-            }
+            while (qoeRntiFile >> qoeAtual) {}
         }
 
         if (qosRntiFile.is_open()) {
-            while (qosRntiFile >> qosAtual) {
-            }
+            while (qosRntiFile >> qosAtual) {}
         }
+
         if (qosAtual < 0)
             qosAtual = 0;
 
-        /*----------------neighbor cell values----------------*/
         for (it2 = it1->second.begin(); it2 != it1->second.end(); ++it2) {
             std::stringstream qoeFileName;
             std::stringstream qosFileName;
@@ -243,28 +229,23 @@ void HoveHandoverAlgorithm::EvaluateHandover(uint16_t rnti,
             std::ifstream qosFile(qosFileName.str());
             std::ifstream qoeFile(qoeFileName.str());
 
-            cell[i][0] = (uint16_t)it2->second->m_rsrq;
+            cell[cell_iterator][0] = (uint16_t)it2->second->m_rsrq;
 
             if (qoeFile.fail() || qoeFile.peek() == std::ifstream::traits_type::eof())
-                cell[i][1] = 0;
+                cell[cell_iterator][1] = 0;
             else
                 while (qoeFile >> qoeResult)
-                    cell[i][1] = stod(qoeResult);
+                    cell[cell_iterator][1] = stod(qoeResult);
 
             if (qosFile.fail() || qosFile.peek() == std::ifstream::traits_type::eof())
-                cell[i][2] = 0;
+                cell[cell_iterator][2] = 0;
             else
                 while (qosFile >> qosResult)
-                    cell[i][2] = stod(qosResult);
+                    cell[cell_iterator][2] = stod(qosResult);
 
-            cell[i][3] = it2->first;
-            ++i;
+            cell[cell_iterator][3] = it2->first;
+            ++cell_iterator;
         }
-        /*-----------------current cell values-----------------*/
-        std::stringstream qoeFileName;
-        std::stringstream qosFileName;
-        std::string qoeResult;
-        std::string qosResult;
 
         qoeFileName << "./v2x_temp/qoeTorre" << servingCellId;
         qosFileName << "./v2x_temp/qosTorre" << servingCellId;
@@ -272,59 +253,54 @@ void HoveHandoverAlgorithm::EvaluateHandover(uint16_t rnti,
         std::ifstream qosFile(qosFileName.str());
         std::ifstream qoeFile(qoeFileName.str());
 
-        cell[i][0] = (uint16_t)servingCellRsrq;
+        cell[cell_iterator][0] = (uint16_t)servingCellRsrq;
         if (qoeAtual)
-            cell[i][1] = qoeAtual;
+            cell[cell_iterator][1] = qoeAtual;
         else {
-            cell[i][1] = 0;
+            cell[cell_iterator][1] = 0;
         }
         if (qosAtual)
-            cell[i][2] = qosAtual;
+            cell[cell_iterator][2] = qosAtual;
         else
-            cell[i][2] = 0;
-        cell[i][3] = servingCellId;
+            cell[cell_iterator][2] = 0;
+        cell[cell_iterator][3] = servingCellId;
 
-        for (int i = 0; i < n_c; ++i)
-            for (int j = 0; j < 4; ++j)
-                NS_LOG_UNCOND("linha " << i << " coluna " << j << ": " << cell[i][j]);
+        for (int k = 0; k < n_c; ++k) {
+            soma[k] =  cell[k][0] * 0.14;
+            soma[k] += cell[k][1] * 0.28;
+            soma[k] += cell[k][2] * 0.57;
 
-        // multiplicação pelo autovetor [0.14 0.28 0.57]
-        // qos > qoe > sinal
-        for (int i = 0; i < n_c; ++i) {
-            soma[i] = cell[i][0] * 0.14;
-            soma[i] += cell[i][1] * 0.28;
-            soma[i] += cell[i][2] * 0.57;
+            NS_LOG_DEBUG("cell [" << k << "][0]: " << cell[k][0]);
+            NS_LOG_DEBUG("cell [" << k << "][1]: " << cell[k][1]);
+            NS_LOG_DEBUG("cell [" << k << "][2]: " << cell[k][2]);
+
+            NS_LOG_DEBUG("sum for cell " << k << " :" << soma[k]);
         }
 
-        for (i = 0; i < n_c; ++i) {
-            if (soma[i] > soma_res && cell[i][0] != 0 && cell[i][0] > servingCellRsrq) {
-                bestNeighbourCellRsrq = cell[i][0];
-                bestNeighbourCellId = cell[i][3];
-                soma_res = soma[i];
+        for (int k = 0; k < n_c; ++k) {
+            if (soma[k] > soma_res && cell[k][0] != 0 && cell[k][0] > servingCellRsrq) {
+                bestNeighbourCellRsrq = cell[k][0];
+                bestNeighbourCellId = cell[k][3];
+                soma_res = soma[k];
             }
         }
 
-        // Iteraration of the mean distances for each cell in the next 20 seconds
-        // todo: orgamize the distances in decreasing order
         GetPositions(imsi, "mobil/carroTrace.tcl");
 
-        int dist_soma = 0;
+        double dist_soma = 0;
         for (int i = 0; i < n_c; ++i) {
             dist_soma = 0;
             for (int j = 0; j < 20; ++j) {
-                dist_soma += dist[i][j];
-                NS_LOG_UNCOND("dist_soma" << dist_soma);
-                NS_LOG_UNCOND("dist " << dist[i][j]);
+                dist_soma += m_dist[i][j];
             }
             std::cout << "Node " << imsi << " is on average " << dist_soma / 20 << " meters away from cell " << i + 1 << "\n";
-            if (dist_soma)
-              soma[i] = soma[1] / dist_soma;
-        }
 
-        NS_LOG_UNCOND("----------");
-        for (int i = 0; i < n_c; ++i)
-            for (int j = 0; j < 4; ++j)
-                NS_LOG_UNCOND("linha " << i << " coluna " << j << ": " << cell[i][j]);
+            if (dist_soma) {
+                dist_soma = dist_soma / 10000;
+                soma[i] = soma[i] / dist_soma;
+                NS_LOG_DEBUG("soma[" << i << "] " << soma[i] << " dist_soma " << dist_soma);
+            }
+        }
 
         NS_LOG_INFO("\n\n\n------------------------------------------------------------------------");
         NS_LOG_INFO("Measured at: " << Simulator::Now().GetSeconds() << " Seconds.\nIMSI:" << imsi << "\nRNTI: " << rnti << "\n");
@@ -339,27 +315,39 @@ void HoveHandoverAlgorithm::EvaluateHandover(uint16_t rnti,
         }
         NS_LOG_INFO("\n\nBest Neighbor Cell ID: " << bestNeighbourCellId);
 
-        for (int i = 0; i < n_c; ++i) {
-            NS_LOG_UNCOND("célula " << cell[i][3]);
-        }
-        /*-----------------------------EXECUÇÃO DO HANDOVER-----------------------------*/
-
         if (bestNeighbourCellId != servingCellId && bestNeighbourCellRsrq > servingCellRsrq) {
-            if (Simulator::Now().GetSeconds() - tm < 0.5) {
-                NS_LOG_INFO("Last Handover: " << tm);
-                NS_LOG_INFO("Delaying Handover");
-                NS_LOG_INFO("------------------------------------------------------------------------\n\n\n\n");
-                return;
+
+            std::stringstream outHandFilename;
+            outHandFilename << "v2x_temp/" << "node_" << imsi << "_history";
+
+            std::ifstream inHandFile(outHandFilename.str());
+
+            NS_LOG_DEBUG("File: " << outHandFilename.str() << " status: " << inHandFile.is_open());
+
+            float a = 0, b = 0, a_old = 0, b_old = 0;
+            while (inHandFile >> a >> b){
+                if (inHandFile.eof()) {break;}
+                a_old = a;
+                b_old = b;
             }
-            tm = Simulator::Now().GetSeconds();
-            //Simulator::Schedule(Seconds(rand() % 2), &m_handoverManagementSapUser->TriggerHandover, this, rnti, bestNeighbourCellId);
+
+            NS_LOG_DEBUG("a: " << a << " b: " << b);
+            NS_LOG_DEBUG("a_old: " << a_old << " b_old: " << b_old);
+            NS_LOG_DEBUG("best cell: " << bestNeighbourCellId);
+
+            if (bestNeighbourCellId == b_old)
+                return;
+
+            std::ofstream outHandFile(outHandFilename.str(), std::ofstream::out | std::ofstream::app);
+            outHandFile << "\n" << Simulator::Now().GetSeconds() << " " << bestNeighbourCellId;
+            outHandFile.close();
+
             m_handoverManagementSapUser->TriggerHandover(rnti, bestNeighbourCellId);
             NS_LOG_INFO("Triggering Handover -- RNTI: " << rnti << " -- cellId:" << bestNeighbourCellId << "\n\n\n");
         }
         NS_LOG_INFO("------------------------------------------------------------------------\n\n\n\n");
-    } // end of else of if (it1 == m_neighbourCellMeasures.end ())
-
-} // end of EvaluateMeasurementReport
+    }
+}
 
 bool HoveHandoverAlgorithm::IsValidNeighbour(uint16_t cellId)
 {
@@ -389,7 +377,7 @@ void HoveHandoverAlgorithm::GetPositions(int imsi, std::string path)
                 if (stoi(aux3) >= (int) Simulator::Now().GetSeconds() && stoi(aux3) - Simulator::Now().GetSeconds() < 20){
                     int nc = 0;
                     while(infile >> aux_l1 >> aux_l2 >> aux_l3){
-                        dist[nc][stoi(aux3)] = sqrt(pow(stod(aux_l2) - x,2) + pow(stod(aux_l3) - y, 2));
+                        m_dist[nc][stoi(aux3)] = sqrt(pow(stod(aux_l2) - x,2) + pow(stod(aux_l3) - y, 2));
                         ++nc;
                     }
                 } // 
@@ -411,7 +399,6 @@ void HoveHandoverAlgorithm::UpdateNeighbourMeasurements(uint16_t rnti,
     it1 = m_neighbourCellMeasures.find(rnti);
 
     if (it1 == m_neighbourCellMeasures.end()) {
-        // insert a new UE entry
         MeasurementRow_t row;
         std::pair<MeasurementTable_t::iterator, bool> ret;
         ret = m_neighbourCellMeasures.insert(std::pair<uint16_t, MeasurementRow_t>(rnti, row));
@@ -431,7 +418,6 @@ void HoveHandoverAlgorithm::UpdateNeighbourMeasurements(uint16_t rnti,
         neighbourCellMeasures->m_rsrq = rsrq;
     }
     else {
-        // insert a new cell entry
         neighbourCellMeasures = Create<UeMeasure>();
         neighbourCellMeasures->m_cellId = cellId;
         neighbourCellMeasures->m_rsrp = 0;

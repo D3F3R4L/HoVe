@@ -107,7 +107,7 @@ protected:
 
 private:
 
-  double dist[100][100];
+  double m_dist[100][100];
   Time m_timeToTrigger;
   double  m_threshold;
   /**

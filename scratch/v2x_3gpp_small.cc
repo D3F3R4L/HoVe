@@ -36,18 +36,11 @@
 #include "ns3/lte-helper.h"
 #include "ns3/epc-helper.h"
 #include "ns3/lte-module.h"
-// Monitor de fluxo
-#include "ns3/flow-monitor-module.h"
-#include "ns3/flow-monitor.h"
-#include "ns3/flow-monitor-helper.h"
-#include "ns3/gnuplot.h"
 
 #include "ns3/string.h"
 #include "ns3/double.h"
 #include <ns3/boolean.h>
 #include <ns3/enum.h>
-
-#include "ns3/lte-hex-grid-enb-topology-helper.h"
 
 #include <iomanip>
 #include <string>
@@ -64,12 +57,6 @@
 #define PI 3.14159265
 
 #define SIMULATION_TIME_FORMAT(s) Seconds(s)
-
-/*-----------------------VARIÁVEIS DO VÍDEO-----------------------*/
-// 1 PARA st_highway_cif
-// 2 PARA st_container_cif_h264_300_20
-// 3 PARA st_highway_600_cif
-// 4 PARA st_akiyo_cif_h264_300_18
 
 #define video 1
 
@@ -113,45 +100,31 @@
 
 using namespace ns3;
 
-double TxRate = 0; // TAXA DE RECEBIMENTO DE PACOTES
+double TxRate = 0;
 bool useCbr = false;
 
-const int pedestres = 0;
-const int trens = 0;
+const int node_ue = 60;
 
-const int carros = 10;
-
-const int node_ue = pedestres + carros + trens;
-
-// 3 hpn para cenário wgrs
-// 1 hpn para cenário do journal
-// 7 hpn para cenário monte carlo
-//7 low power para cenários wgrs e 77 para monte carlo
-const uint16_t enb_HPN = 10;
-const uint16_t low_power = 0;
+const uint16_t enb_HPN = 1;
+const uint16_t low_power = 60;
 const uint16_t hot_spot = 0;
 
 const int node_enb = enb_HPN + low_power + hot_spot;
 
-int cell_ue[enb_HPN + low_power + hot_spot][node_ue]; // matriz de conexões
-
+int cell_ue[enb_HPN + low_power + hot_spot][node_ue];
 uint16_t n_cbr = useCbr?enb_HPN+low_power:0;
 
 int hpnTxPower = 50;
 int lpnTxPower = 23;
 int hpTxPower  = 15;
 
-int distancia  = 1000; //distância entre torres HPN (mínima)
-
 double simTime = 105; // TEMPO_SIMULAÇÃO
 int transmissionStart = 5;
 
-// número de handovers realizados
 unsigned int handNumber = 0;
 
-//scenario
+bool randomCellAlloc = true;
 bool rowTopology = false;
-bool journal = true;
 
 //coeficiente da média exponencial
 unsigned int exp_mean_window = 3;
@@ -185,9 +158,6 @@ void NotifyConnectionEstablishedUe(std::string context,
         << " " << context << " UE IMSI " << imsi
         << ": connected to CellId " << cellid << " with RNTI " << rnti);
 
-    if (mkdir("./v2x_temp", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) != 0) {
-    }
-
     std::stringstream temp_cell_dir;
     std::stringstream ueId;
     temp_cell_dir << "./v2x_temp/" <<  cellid;
@@ -198,13 +168,6 @@ void NotifyConnectionEstablishedUe(std::string context,
     outfile << imsi << std::endl;
     outfile.close();
 
-    /*
-    std::ofstream ofs("rnti/" + strrnti.str() + ".txt"); //, ios::out);
-    ofs << imsi << "\t" << cellid << "\n";
-    ofs.close();
-    */
-
-    //feed connection matrix
     cell_ue[cellid - 1][imsi - 1] = rnti;
 }
 
@@ -286,48 +249,47 @@ void NotifyHandoverEndOkEnb(std::string context,
         << rnti);
 }
 
-void ArrayPositionAllocator(Ptr<ListPositionAllocator> HpnPosition, int distance)
+void ArrayPositionAllocator(Ptr<ListPositionAllocator> HpnPosition)
 {
     int x, y;
+    int distance = 1000;
     std::ofstream outfile("v2x_temp/cellsList", std::ios::out | std::ios::trunc);
-    if (rowTopology) { // enbs em fila
-        int x_start = 700;
-        int y_start = 500;
-        for (int i = 0; i < enb_HPN + low_power + hot_spot; ++i)
-            //HpnPosition->Add(Vector(x_start + rand() % 1000, y_start + rand() % 1000, 10));
-            HpnPosition->Add(Vector(x_start + distance * i, y_start, 25));
-        //for (int i = 0; i <= low_power; ++i)
-        //    HpnPosition->Add(Vector(x_start + rand() % 1000, y_start + rand() % 1000, 10));
-        return;
-    }
 
-    if (journal){ // random positions, currently this is the only one that shoud be used
-                  // for real, nothing will work for the other ones
+    if (randomCellAlloc){
         for (int i = 0; i < enb_HPN + low_power + hot_spot; ++i) {
             x = rand() % 2000;
             y = rand() % 2000;
-            HpnPosition->Add(Vector(x, y, 30));
+            HpnPosition->Add(Vector(x, y, 15));
             outfile << i + 1 << " " << x << " " << y << std::endl;
         }
         outfile.close();
         return;
     }
 
-    /* enbs seguem padrão hexagonal do 3gpp*/
-    int x_start = 1000;
-    int y_start = 1000;
-
-    HpnPosition->Add(Vector(x_start, y_start, 25));
-
-    for (double i = 0; i < 2 * PI; i += PI / 3) {
-        HpnPosition->Add(Vector(x_start + distance * cos(i), y_start + distance * sin(i), 25));
+    else if (rowTopology) {
+        int x_start = 700;
+        int y_start = 500;
+        for (int i = 0; i < enb_HPN + low_power + hot_spot; ++i)
+            HpnPosition->Add(Vector(x_start + distance * i, y_start, 25));
+        return;
     }
 
-    for (double i = 0; i < 2 * PI; i += PI / 3) {
-        HpnPosition->Add(Vector(x_start + distance * cos(i) + rand() % 100 + 10, y_start + distance * sin(i) + rand() % 100 + 10, 10));
-        HpnPosition->Add(Vector(x_start + distance * cos(i) + rand() % 100 + 10, y_start + distance * sin(i) - rand() % 100 + 10, 10));
-        HpnPosition->Add(Vector(x_start + distance * cos(i) + rand() % 100 - 10, y_start + distance * sin(i) + rand() % 100 + 10, 10));
-        HpnPosition->Add(Vector(x_start + distance * cos(i) + rand() % 100 - 10, y_start + distance * sin(i) - rand() % 100 + 10, 10));
+    else {
+        int x_start = 1000;
+        int y_start = 1000;
+
+        HpnPosition->Add(Vector(x_start, y_start, 25));
+
+        for (double i = 0; i < 2 * PI; i += PI / 3) {
+            HpnPosition->Add(Vector(x_start + distance * cos(i), y_start + distance * sin(i), 25));
+        }
+
+        for (double i = 0; i < 2 * PI; i += PI / 3) {
+            HpnPosition->Add(Vector(x_start + distance * cos(i) + rand() % 100 + 10, y_start + distance * sin(i) + rand() % 100 + 10, 10));
+            HpnPosition->Add(Vector(x_start + distance * cos(i) + rand() % 100 + 10, y_start + distance * sin(i) - rand() % 100 + 10, 10));
+            HpnPosition->Add(Vector(x_start + distance * cos(i) + rand() % 100 - 10, y_start + distance * sin(i) + rand() % 100 + 10, 10));
+            HpnPosition->Add(Vector(x_start + distance * cos(i) + rand() % 100 - 10, y_start + distance * sin(i) - rand() % 100 + 10, 10));
+        }
     }
 }
 
@@ -428,9 +390,9 @@ void WriteMetrics()
                     //NS_LOG_DEBUG("NODE " << u << " QOS ESTIMADO " << qosSum[i] / qosMetricsIterator[i]);
                 }
 
-                /*--------------------------------------------------------*/
-
+                /**-------------------------------------------------------*/
                 /*-----------------QOE METRIC CALCULATION-----------------*/
+                /*--------------------------------------------------------*/
 
                 framePct[numberOfFrames] = numberOfPackets + 1;
                 for (int j = 0; j < numberOfFrames; ++j) {
@@ -506,14 +468,14 @@ void WriteMetrics()
                         << " " << gop << " 2>/dev/null";
 
                     //CÁLCULO DA MÉDIA EXPONENCIAL E ESCRITA NO ARQUIVO
-                    // qoeOutFile << 2 * (stod(exec(cmd.str().c_str())) - valorAtualQoe) / (exp_mean_window + 1) + valorAtualQoe;
-                    // NS_LOG_INFO("NODE " << u << " QOE ESTIMADO " << 2 * (stod(exec(cmd.str().c_str())) - valorAtualQoe) / (exp_mean_window + 1) + valorAtualQoe);
-                    // qoeOutFile.close();
+                    qoeOutFile << 2 * (stod(exec(cmd.str().c_str())) - valorAtualQoe) / (exp_mean_window + 1) + valorAtualQoe;
+                    NS_LOG_INFO("NODE " << u << " QOE ESTIMADO " << 2 * (stod(exec(cmd.str().c_str())) - valorAtualQoe) / (exp_mean_window + 1) + valorAtualQoe);
+                    qoeOutFile.close();
 
                     //CÁLCULO POR MÉDIA SIMPLES
-                    qoeSum[i] += stod(exec(cmd.str().c_str()));
-                    qoeMetricsIterator[i]++;
-                    qoeOutFile << qoeSum[i] / qoeMetricsIterator[i];
+                    // qoeSum[i] += stod(exec(cmd.str().c_str()));
+                    // qoeMetricsIterator[i]++;
+                    // qoeOutFile << qoeSum[i] / qoeMetricsIterator[i];
 
 
                     //NS_LOG_INFO("NODE " << u << " QOE ESTIMADO " << qoeSum[i] / qoeMetricsIterator[i]);
@@ -574,11 +536,13 @@ void showPosition(Ptr<Node> node, double deltaTime)
     Simulator::Schedule(Seconds(deltaTime), &showPosition, node, deltaTime);
 }
 
-/*--------------------------MAIN FUNCTION-------------------------*/
 int main(int argc, char* argv[])
 {
-    // Garantir mesma quantidade de nós de cda tipo
-    // NS_ASSERT(pedestres == carros && carros == trens);
+
+    if (mkdir("./v2x_temp", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH) != 0) {
+    }
+    system("exec rm -rf v2x_temp/*");
+
     for (int u = 0; u < node_ue; ++u) {
         for (int i = 0; i < numberOfPackets; ++i)
             receivedPackets[u][i] = false;
@@ -586,12 +550,11 @@ int main(int argc, char* argv[])
         for (int i = 0; i < numberOfFrames; ++i)
             receivedFrames[u][i] = false;
     }
-    /*---------------------CRIAÇÃO DE OBJETOS ÚTEIS-----------------*/
 
     int seedValue = 1;
     std::string handoverAlg = "hove";
-    /*--------------------- COMMAND LINE PARSING -------------------*/
     CommandLine cmm;
+
     cmm.AddValue("seedValue", "valor de seed para aleatoriedade", seedValue);
     cmm.AddValue("handoverAlg", "Handover algorith in use", handoverAlg);
     cmm.Parse(argc, argv);
@@ -727,43 +690,29 @@ int main(int argc, char* argv[])
     Ptr<Ipv4StaticRouting> remoteHostStaticRouting = ipv4RoutingHelper.GetStaticRouting(remoteHost->GetObject<Ipv4>());
     remoteHostStaticRouting->AddNetworkRouteTo(Ipv4Address("7.0.0.0"),
         Ipv4Mask("255.0.0.0"), 1);
-    /*----------------------------------------------------------------------*/
 
-    /*------------------- Criacao de UEs-Enb--------------------------*/
-    // UE - Veículos
-
-    NodeContainer pedestres_nc;
-    pedestres_nc.Create(pedestres);
-
-    NodeContainer carros_nc;
-    carros_nc.Create(carros);
-
-    NodeContainer trens_nc;
-    trens_nc.Create(trens);
+    NodeContainer nodes_ue_nc;
+    nodes_ue_nc.Create(node_ue);
 
     NodeContainer cbr_nodes;
     cbr_nodes.Create(n_cbr);
 
-    // eNODEb
     NodeContainer enbNodes;
     enbNodes.Create(enb_HPN + low_power + hot_spot);
 
-    // Instala pilha de Internet em UE e EnodeB
-    internet.Install(pedestres_nc);
-    internet.Install(carros_nc);
-    internet.Install(trens_nc);
+    internet.Install(nodes_ue_nc);
     internet.Install(cbr_nodes);
 
     /*-----------------POSIÇÃO DAS TORRES----------------------------------*/
     Ptr<ListPositionAllocator> HpnPosition = CreateObject<ListPositionAllocator>();
-    ArrayPositionAllocator(HpnPosition, distancia);
+    ArrayPositionAllocator(HpnPosition);
 
     MobilityHelper remoteHostMobility;
     remoteHostMobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
     remoteHostMobility.Install(remoteHost);
     remoteHostMobility.Install(pgw);
 
-    /*-----------------MONILIDADE DAS TORRES (PARADA)--------------*/
+    /*-----------------MONILIDADE DAS TORRES --------------*/
 
     MobilityHelper mobilityEnb;
     mobilityEnb.SetMobilityModel("ns3::ConstantPositionMobilityModel");
@@ -775,34 +724,19 @@ int main(int argc, char* argv[])
     mobilityEnb.SetPositionAllocator(HpnPosition);
     mobilityEnb.Install(cbr_nodes);
 
-    // LogComponentEnable("Ns2MobilityHelper", LOG_LEVEL_DEBUG);
-
-    /*---------------MONILIDADE DOS CARROS------------------------------*/
-/*
-    Ns2MobilityHelper mobil_ped = Ns2MobilityHelper("mobil/novoMobilityGrid.tcl");
-    Ns2MobilityHelper mobil_carro = Ns2MobilityHelper("mobil/novoMobilityGrid.tcl");
-    Ns2MobilityHelper mobil_trem = Ns2MobilityHelper("mobil/novoMobilityGrid.tcl");
-*/
-
   Ns2MobilityHelper mobil_ped = Ns2MobilityHelper("mobil/taxisTrace.tcl");
   Ns2MobilityHelper mobil_carro = Ns2MobilityHelper("mobil/carroTrace.tcl");
-  Ns2MobilityHelper mobil_trem = Ns2MobilityHelper("mobil/onibusTrace.tcl");
   MobilityHelper ueMobility;  
   MobilityHelper enbMobility;  
 
-  mobil_ped.Install(pedestres_nc.Begin(), pedestres_nc.End());
-  mobil_carro.Install(carros_nc.Begin(), carros_nc.End());
-  mobil_trem.Install(trens_nc.Begin(), trens_nc.End());
+  mobil_carro.Install(nodes_ue_nc.Begin(), nodes_ue_nc.End());
 
     //-------------Instala LTE Devices para cada grupo de nós
     NetDeviceContainer enbLteDevs;
     enbLteDevs = lteHelper->InstallEnbDevice(enbNodes);
     NetDeviceContainer pedLteDevs;
-    pedLteDevs = lteHelper->InstallUeDevice(pedestres_nc);
     NetDeviceContainer carLteDevs;
-    carLteDevs = lteHelper->InstallUeDevice(carros_nc);
-    NetDeviceContainer tremLteDevs;
-    tremLteDevs = lteHelper->InstallUeDevice(trens_nc);
+    carLteDevs = lteHelper->InstallUeDevice(nodes_ue_nc);
     NetDeviceContainer cbrLteDevs;
     cbrLteDevs = lteHelper->InstallUeDevice(cbr_nodes);
 
@@ -812,28 +746,11 @@ int main(int argc, char* argv[])
     pedIpIface = epcHelper->AssignUeIpv4Address(NetDeviceContainer(pedLteDevs));
     Ipv4InterfaceContainer carIpIface;
     carIpIface = epcHelper->AssignUeIpv4Address(NetDeviceContainer(carLteDevs));
-    Ipv4InterfaceContainer tremIpIface;
-    tremIpIface = epcHelper->AssignUeIpv4Address(NetDeviceContainer(tremLteDevs));
     Ipv4InterfaceContainer cbrIpFace;
     cbrIpFace = epcHelper->AssignUeIpv4Address(NetDeviceContainer(cbrLteDevs));
 
-    //-------------Definir endereços IPs e instala aplicação
-    for (uint32_t u = 0; u < pedestres_nc.GetN(); ++u) {
-        Ptr<Node> ueNode = pedestres_nc.Get(u);
-        Ptr<Ipv4StaticRouting> ueStaticRouting = ipv4RoutingHelper.GetStaticRouting(ueNode->GetObject<Ipv4>());
-        ueStaticRouting->SetDefaultRoute(epcHelper->GetUeDefaultGatewayAddress(),
-            1);
-        // Simulator::Schedule(Seconds(0.0), &showPosition, ueNode, 1.0);
-    }
-    for (uint32_t u = 0; u < carros_nc.GetN(); ++u) {
-        Ptr<Node> ueNode = carros_nc.Get(u);
-        Ptr<Ipv4StaticRouting> ueStaticRouting = ipv4RoutingHelper.GetStaticRouting(ueNode->GetObject<Ipv4>());
-        ueStaticRouting->SetDefaultRoute(epcHelper->GetUeDefaultGatewayAddress(),
-            1);
-        // Simulator::Schedule(Seconds(0.0), &showPosition, ueNode, 1.0);
-    }
-    for (uint32_t u = 0; u < trens_nc.GetN(); ++u) {
-        Ptr<Node> ueNode = trens_nc.Get(u);
+    for (uint32_t u = 0; u < nodes_ue_nc.GetN(); ++u) {
+        Ptr<Node> ueNode = nodes_ue_nc.Get(u);
         Ptr<Ipv4StaticRouting> ueStaticRouting = ipv4RoutingHelper.GetStaticRouting(ueNode->GetObject<Ipv4>());
         ueStaticRouting->SetDefaultRoute(epcHelper->GetUeDefaultGatewayAddress(),
             1);
@@ -894,31 +811,20 @@ int main(int argc, char* argv[])
     //-------------Anexa as UEs na eNodeB
 
     if (handoverAlg == "hove"){
-      lteHelper->AttachToClosestEnb(pedLteDevs, enbLteDevs);
       lteHelper->AttachToClosestEnb(carLteDevs, enbLteDevs);
-      lteHelper->AttachToClosestEnb(tremLteDevs, enbLteDevs);
     }
     else{
-      lteHelper->Attach(pedLteDevs);
       lteHelper->Attach(carLteDevs);
-      lteHelper->Attach(tremLteDevs);
     }
     lteHelper->AttachToClosestEnb(cbrLteDevs, enbLteDevs);
     lteHelper->AddX2Interface(enbNodes);
 
-    //lteHelper->HandoverRequest (Seconds (2), pedLteDevs.Get (0), enbLteDevs.Get (0), enbLteDevs.Get (1));
 
     NS_LOG_INFO("Create Applications.");
 
     // Início Transmissão de Vídeo
     //Rodar aplicação EvalVid
-    requestStream(remoteHost, pedestres_nc, remoteHostAddr, simTime, transmissionStart);
-    requestStream(remoteHost, carros_nc, remoteHostAddr, simTime, transmissionStart);
-    requestStream(remoteHost, trens_nc, remoteHostAddr, simTime, transmissionStart);
-
-    /*requestStream(remoteHost, pedestres_nc, remoteHostAddr, simTime, transmissionStart + 20);
-    requestStream(remoteHost, carros_nc, remoteHostAddr, simTime, transmissionStart + 20);
-    requestStream(remoteHost, trens_nc, remoteHostAddr, simTime, transmissionStart + 20);*/
+    requestStream(remoteHost, nodes_ue_nc, remoteHostAddr, simTime, transmissionStart);
 
     /*----------------NETANIM-------------------------------*/
     AnimationInterface anim("v2x_temp/LTEnormal_v2x.xml");
@@ -927,17 +833,9 @@ int main(int argc, char* argv[])
         anim.UpdateNodeDescription(enbNodes.Get(i), "eNb");
         anim.UpdateNodeColor(enbNodes.Get(i), 0, 255, 0);
     }
-    for (uint32_t i = 0; i < pedestres_nc.GetN(); ++i) {
-        anim.UpdateNodeDescription(pedestres_nc.Get(i), "UE Pedestre");
-        anim.UpdateNodeColor(pedestres_nc.Get(i),  255, 0, 0);
-    }
-    for (uint32_t i = 0; i < trens_nc.GetN(); ++i) {
-        anim.UpdateNodeDescription(trens_nc.Get(i), "UE Trem");
-        anim.UpdateNodeColor(trens_nc.Get(i), 255, 0, 0);
-    }
-    for (uint32_t i = 0; i < carros_nc.GetN(); ++i) {
-        anim.UpdateNodeDescription(carros_nc.Get(i), "UE Carro");
-        anim.UpdateNodeColor(carros_nc.Get(i), 255, 0, 0);
+    for (uint32_t i = 0; i < nodes_ue_nc.GetN(); ++i) {
+        anim.UpdateNodeDescription(nodes_ue_nc.Get(i), "UE Carro");
+        anim.UpdateNodeColor(nodes_ue_nc.Get(i), 255, 0, 0);
     }
     for (uint32_t i = 0; i < cbr_nodes.GetN(); ++i) {
         anim.UpdateNodeDescription(cbr_nodes.Get(i), "CBR");
