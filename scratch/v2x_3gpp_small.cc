@@ -58,7 +58,7 @@
 
 #define SIMULATION_TIME_FORMAT(s) Seconds(s)
 
-#define video 1
+#define video 7
 
 #if video == 1
   #define video_st "sourceTraces/st_highway_cif.st"
@@ -567,10 +567,10 @@ int main(int argc, char* argv[])
 
     LogComponentEnable("v2x_3gpp", LOG_LEVEL_DEBUG);
     LogComponentEnable("v2x_3gpp", LOG_LEVEL_INFO);
-    LogComponentEnable("LteEnbRrc", LOG_LEVEL_ALL);
-    LogComponentEnable("LteUeRrc", LOG_LEVEL_ALL);
-    LogComponentEnable("HoveHandoverAlgorithm", LOG_LEVEL_INFO);
-    LogComponentEnable("HoveHandoverAlgorithm", LOG_LEVEL_DEBUG);
+    // LogComponentEnable("LteEnbRrc", LOG_LEVEL_ALL);
+    // LogComponentEnable("LteUeRrc", LOG_LEVEL_ALL);
+    // LogComponentEnable("HoveHandoverAlgorithm", LOG_LEVEL_INFO);
+    // LogComponentEnable("HoveHandoverAlgorithm", LOG_LEVEL_DEBUG);
     LogComponentEnable("EvalvidClient", LOG_LEVEL_INFO);
 
     //-------------Parâmetros da simulação

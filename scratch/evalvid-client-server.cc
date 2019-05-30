@@ -92,12 +92,12 @@ main (int argc, char *argv[])
   //
   uint16_t port = 4000;
   EvalvidServerHelper server (port);
-  server.SetAttribute ("SenderTraceFilename", StringValue("sourceTraces/st_mobile_cif_h264_300_18"));
+  server.SetAttribute ("SenderTraceFilename", StringValue("sourceTraces/st_masha_cut"));
   server.SetAttribute ("SenderDumpFilename", StringValue("sd_a01"));
   server.SetAttribute ("PacketPayload",UintegerValue(1014));
   ApplicationContainer apps = server.Install (n.Get(1));
   apps.Start (Seconds (9.0));
-  apps.Stop (Seconds (101.0));
+  apps.Stop (Seconds (300.0));
 
 
   //

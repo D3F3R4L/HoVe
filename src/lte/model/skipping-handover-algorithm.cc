@@ -267,8 +267,8 @@ void SkippingHandoverAlgorithm::EvaluateHandover(uint16_t rnti,
 
         for (int k = 0; k < n_c; ++k) {
             soma[k] =  cell[k][0] * 0.14;
-            soma[k] += cell[k][1] * 0.28;
-            soma[k] += cell[k][2] * 0.57;
+            //soma[k] += cell[k][1] * 0.28;
+            //soma[k] += cell[k][2] * 0.57;
 
             NS_LOG_DEBUG("cell [" << k << "][0]: " << cell[k][0]);
             NS_LOG_DEBUG("cell [" << k << "][1]: " << cell[k][1]);
@@ -295,11 +295,11 @@ void SkippingHandoverAlgorithm::EvaluateHandover(uint16_t rnti,
             }
             std::cout << "Node " << imsi << " is on average " << dist_soma / 20 << " meters away from cell " << i + 1 << "\n";
 
-            if (dist_soma) {
-                dist_soma = dist_soma / 10000;
-                soma[i] = soma[i] / dist_soma;
-                NS_LOG_DEBUG("soma[" << i << "] " << soma[i] << " dist_soma " << dist_soma);
-            }
+            //if (dist_soma) {
+                //dist_soma = dist_soma / 10000;
+                //soma[i] = soma[i] / dist_soma;
+                //NS_LOG_DEBUG("soma[" << i << "] " << soma[i] << " dist_soma " << dist_soma);
+            //}
         }
 
         NS_LOG_INFO("\n\n\n------------------------------------------------------------------------");
