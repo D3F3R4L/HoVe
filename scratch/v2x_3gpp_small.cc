@@ -100,7 +100,7 @@
     #define video_st "sourceTraces/st_masha360p"
     #define numberOfFrames 1500
     #define numberOfPackets 3434
-    #define gop 28
+    #define gop 30
 
 #endif
 
