@@ -4,14 +4,10 @@ read n
 echo -n "whats the algorithm used? "
 read alg
 
+mkdir ${alg}
 for i in $(seq 1 $n)
 do
-    time ./waf --run "scratch/v2x_3gpp_small --handoverAlg=$alg --seedValue=$i" > run-$alg-$i 2>&1
-    mkdir $alg
-    mkdir $alg/simul$i
-    mv v2x_temp/rd* v2x_temp/sd* $alg/simul$i
-    rm -rf rnti qo*Torre* Dl* Ul*
-    python ../../finish.pyo $alg $i
+    time ./waf --run "scratch/v2x_3gpp_small --handoverAlg=$alg --seedValue=$i" > log_${alg}_${i} 2>&1
+    mkdir ${alg}/simul${i}
+    mv v2x_temp/* $alg/simul$i
 done
-
-exit

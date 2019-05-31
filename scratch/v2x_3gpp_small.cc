@@ -628,7 +628,7 @@ int main(int argc, char* argv[])
         lteHelper->SetHandoverAlgorithmAttribute("NumberOfUEs", UintegerValue(node_ue));
     }
 
-    if (handoverAlg == "skip") {
+    else if (handoverAlg == "skip") {
         lteHelper->SetHandoverAlgorithmType("ns3::SkippingHandoverAlgorithm");
         lteHelper->SetHandoverAlgorithmAttribute("NumberOfUEs", UintegerValue(node_ue));
     }

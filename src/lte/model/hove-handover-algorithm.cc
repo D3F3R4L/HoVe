@@ -335,7 +335,8 @@ void HoveHandoverAlgorithm::EvaluateHandover(uint16_t rnti,
             NS_LOG_DEBUG("a_old: " << a_old << " b_old: " << b_old);
             NS_LOG_DEBUG("best cell: " << bestNeighbourCellId);
 
-            if (bestNeighbourCellId == b_old)
+            NS_LOG_DEBUG("is_ping_pong: " << Simulator::Now().GetSeconds() - a_old);
+            if (bestNeighbourCellId == b_old && Simulator::Now().GetSeconds() - a_old < 4)
                 return;
 
             std::ofstream outHandFile(outHandFilename.str(), std::ofstream::out | std::ofstream::app);
