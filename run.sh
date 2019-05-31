@@ -4,6 +4,43 @@ read n
 echo -n "whats the algorithm used? "
 read alg
 
+echo -n "Video to be used: "
+read video
+
+if [ "$video" == "container" ]
+then
+  video_id=2
+
+elif [ $video == "highway" ]
+then
+  video_id=1
+
+elif [ $video == "highway600" ]
+then
+  video_id=3
+
+elif [ $video == "akiyo" ]
+then
+  video_id=4
+
+elif [ $video == "masha" ]
+then
+  video_id=7
+
+elif [ $video == "despacito" ]
+then
+  video_id=9
+
+elif [ $video == "babyshark" ]
+then
+  video_id=8
+
+else
+    exit 1
+fi
+
+sed -i "s/#define video [0-9]/#define video $video_id/g" scratch/v2x_3gpp_small.cc
+
 mkdir ${alg}
 for i in $(seq 1 $n)
 do

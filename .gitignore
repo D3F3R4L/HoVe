@@ -70,3 +70,7 @@ build/
 *.exe
 *.out
 *.app
+
+v2x_temp/
+log_*
+

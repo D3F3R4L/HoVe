@@ -58,7 +58,7 @@
 
 #define SIMULATION_TIME_FORMAT(s) Seconds(s)
 
-#define video 7
+#define video 8
 
 #if video == 1
   #define video_st "sourceTraces/st_highway_cif.st"
@@ -100,6 +100,18 @@
     #define video_st "sourceTraces/st_masha360p"
     #define numberOfFrames 1500
     #define numberOfPackets 3434
+    #define gop 30
+
+#elif video == 8
+    #define video_st "sourceTraces/st_baby_shark"
+    #define numberOfFrames 1794
+    #define numberOfPackets 4262
+    #define gop 30
+
+#elif video == 9
+    #define video_st "sourceTraces/st_despacito"
+    #define numberOfFrames 1439
+    #define numberOfPackets 3223
     #define gop 30
 
 #endif
