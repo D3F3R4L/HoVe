@@ -859,35 +859,20 @@ int main(int argc, char* argv[])
         anim.UpdateNodeDescription(remoteHost, "RH");
         anim.UpdateNodeColor(remoteHost, 0, 255, 255);
 
-    /*---------------------- Simulation Stopping Time ----------------------*/
     Simulator::Stop(SIMULATION_TIME_FORMAT(simTime));
 
     /*--------------NOTIFICAÇÕES DE HANDOVER E SINAL-------------------------*/
-    // Config::Connect("/NodeList/*/DeviceList/*/LteEnbRrc/ConnectionEstablished",
-    //                MakeCallback(&NotifyConnectionEstablishedEnb));
+    if (handoverAlg == "hove") {
     Config::Connect("/NodeList/*/DeviceList/*/LteUeRrc/ConnectionEstablished",
         MakeCallback(&NotifyConnectionEstablishedUe));
-    // Config::Connect("/NodeList/*/DeviceList/*/LteEnbRrc/HandoverStart",
-    //                MakeCallback(&NotifyHandoverStartEnb));
     Config::Connect("/NodeList/*/DeviceList/*/LteUeRrc/HandoverStart",
         MakeCallback(&NotifyHandoverStartUe));
-    // Config::Connect("/NodeList/*/DeviceList/*/LteEnbRrc/HandoverEndOk",
-    //                MakeCallback(&NotifyHandoverEndOkEnb));
     Config::Connect("/NodeList/*/DeviceList/*/LteUeRrc/HandoverEndOk",
         MakeCallback(&NotifyHandoverEndOkUe));
+    }
 
-    /*----------------PHY TRACES ------------------------------------*/
-    lteHelper->EnablePhyTraces();
-    lteHelper->EnableUlPhyTraces();
-    lteHelper->EnableMacTraces();
-    lteHelper->EnableRlcTraces();
-    lteHelper->EnablePdcpTraces();
-
-    /*--------------------------- Simulation Run ---------------------------*/
     Simulator::Run(); // Executa
-
     Simulator::Destroy();
 
-    Simulator::Run();
     return EXIT_SUCCESS;
 }
