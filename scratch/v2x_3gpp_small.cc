@@ -96,14 +96,21 @@
     #define numberOfPackets 605
     #define gop 28
 
+#elif video == 7
+    #define video_st "sourceTraces/st_masha360p"
+    #define numberOfFrames 1500
+    #define numberOfPackets 3434
+    #define gop 28
+
 #endif
 
 using namespace ns3;
 
 double TxRate = 0;
 bool useCbr = false;
+bool verbose = true;
 
-const int node_ue = 60;
+const int node_ue = 1;
 
 const uint16_t enb_HPN = 1;
 const uint16_t low_power = 60;
@@ -490,7 +497,7 @@ void requestStream(Ptr<Node> remoteHost, NodeContainer ueNodes, Ipv4Address remo
 {
     for (uint32_t i = 0; i < ueNodes.GetN(); ++i) {
         string video_trans = video_st;
-        int startTime = rand() % 40 + 20;
+        int startTime = rand() % 10 + transmissionStart;
         NS_LOG_UNCOND("Node " << i << " requesting video at " << startTime << "\n");
         std::stringstream sdTrace;
         std::stringstream rdTrace;
@@ -555,10 +562,11 @@ int main(int argc, char* argv[])
     std::string handoverAlg = "hove";
     CommandLine cmm;
 
-    cmm.AddValue("seedValue", "valor de seed para aleatoriedade", seedValue);
-    cmm.AddValue("handoverAlg", "Handover algorith in use", handoverAlg);
+    cmm.AddValue("seedValue", "random seed value.", seedValue);
+    cmm.AddValue("handoverAlg", "Handover algorith in use.", handoverAlg);
+    cmm.AddValue("verbose", "lte stats verbose.", verbose);
     cmm.Parse(argc, argv);
-    RngSeedManager::SetSeed(seedValue); //valor de seed para geração de números aleatórios
+    RngSeedManager::SetSeed(seedValue + 10000); //valor de seed para geração de números aleatórios
     srand(seedValue);
 
 
@@ -567,11 +575,13 @@ int main(int argc, char* argv[])
 
     LogComponentEnable("v2x_3gpp", LOG_LEVEL_DEBUG);
     LogComponentEnable("v2x_3gpp", LOG_LEVEL_INFO);
-    // LogComponentEnable("LteEnbRrc", LOG_LEVEL_ALL);
-    // LogComponentEnable("LteUeRrc", LOG_LEVEL_ALL);
-    // LogComponentEnable("HoveHandoverAlgorithm", LOG_LEVEL_INFO);
-    // LogComponentEnable("HoveHandoverAlgorithm", LOG_LEVEL_DEBUG);
     LogComponentEnable("EvalvidClient", LOG_LEVEL_INFO);
+    if (verbose) {
+      LogComponentEnable("LteEnbRrc", LOG_LEVEL_ALL);
+      LogComponentEnable("LteUeRrc", LOG_LEVEL_ALL);
+      LogComponentEnable("HoveHandoverAlgorithm", LOG_LEVEL_INFO);
+      LogComponentEnable("HoveHandoverAlgorithm", LOG_LEVEL_DEBUG);
+    }
 
     //-------------Parâmetros da simulação
     uint16_t node_remote = 1; // HOST_REMOTO
@@ -615,6 +625,11 @@ int main(int argc, char* argv[])
     /*----------------------ALGORITMO DE HANDOVER----------------------*/
     if (handoverAlg == "hove") {
         lteHelper->SetHandoverAlgorithmType("ns3::HoveHandoverAlgorithm");
+        lteHelper->SetHandoverAlgorithmAttribute("NumberOfUEs", UintegerValue(node_ue));
+    }
+
+    if (handoverAlg == "skip") {
+        lteHelper->SetHandoverAlgorithmType("ns3::SkippingHandoverAlgorithm");
         lteHelper->SetHandoverAlgorithmAttribute("NumberOfUEs", UintegerValue(node_ue));
     }
 
@@ -726,8 +741,8 @@ int main(int argc, char* argv[])
 
   Ns2MobilityHelper mobil_ped = Ns2MobilityHelper("mobil/taxisTrace.tcl");
   Ns2MobilityHelper mobil_carro = Ns2MobilityHelper("mobil/carroTrace.tcl");
-  MobilityHelper ueMobility;  
-  MobilityHelper enbMobility;  
+  MobilityHelper ueMobility;
+  MobilityHelper enbMobility;
 
   mobil_carro.Install(nodes_ue_nc.Begin(), nodes_ue_nc.End());
 
