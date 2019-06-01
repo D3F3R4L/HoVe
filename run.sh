@@ -41,6 +41,7 @@ fi
 
 sed -i "s/#define video [0-9]/#define video $video_id/g" scratch/v2x_3gpp_small.cc
 
+./waf configure
 mkdir ${alg}
 for i in $(seq 1 $n)
 do
