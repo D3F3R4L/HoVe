@@ -122,7 +122,7 @@ double TxRate = 0;
 bool useCbr = false;
 bool verbose = true;
 
-const int node_ue = 1;
+const int node_ue = 60;
 
 const uint16_t enb_HPN = 1;
 const uint16_t low_power = 60;
