@@ -1,52 +1,45 @@
 #!/bin/bash
 
-
-#--------------------------------------------
-echo -n "how many times do you wish to run? "
-read n
-echo -n "whats the algorithm used? "
-read alg
-echo -n "Video to be used: "
-read video
-
-#-------------------------------------------
-if [ "$video" == "container" ]
+if [ $# -eq 3 ]
 then
-  video_id=2
-
-elif [ $video == "highway" ]
-then
-  video_id=1
-
-elif [ $video == "highway600" ]
-then
-  video_id=3
-
-elif [ $video == "akiyo" ]
-then
-  video_id=4
-
-elif [ $video == "masha" ]
-then
-  video_id=7
-
-elif [ $video == "despacito" ]
-then
-  video_id=9
-
-elif [ $video == "babyshark" ]
-then
-  video_id=8
+	n=$1
+	alg=$2
+	video=$video
 
 else
-    exit 1
+	echo -n "how many times do you wish to run? "
+	read n
+	echo -n "whats the algorithm used? "
+	read alg
+	echo -n "Video to be used: "
+	read video
+
 fi
 
-#-------------------------------------------------------
+case $video in 
+"container")
+  video_id=2;;
+"highway")
+  video_id=1;;
+"highway600")
+  video_id=3;;
+"akiyo")
+  video_id=4;;
+"masha")
+  video_id=7;;
+"despacito")
+  video_id=9;;
+"babyshark")
+  video_id=8;;
+*)
+    exit 1
+esac
+
+echo $video_id
+exit 1
+
 sed -i "s/#define video [0-9]/#define video $video_id/g" scratch/v2x_3gpp_small.cc
 
-
-#------------------------------------------------------
 ./waf configure
 mkdir ${alg}
 for i in $(seq 1 $n)
