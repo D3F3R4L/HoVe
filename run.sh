@@ -80,6 +80,6 @@ mkdir ${alg}
 for i in $(seq 1 $n)
 do
     time ./waf --run "scratch/v2x_3gpp_small --handoverAlg=$alg --seedValue=$i" > log_${alg}_${i} 2>&1
-    mkdir ${alg}/simul${i}
-    mv v2x_temp/* log_${alg}_${i} $alg/simul$i
+    mkdir ${alg}_${enb_n}/simul${i}
+    mv v2x_temp/* log_${alg}_${i} $alg_${enb_n}/simul$i
 done
