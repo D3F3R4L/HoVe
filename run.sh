@@ -2,7 +2,6 @@
 
 #default values
 n=1
-alg="hove"
 video="highway"
 ue_n=60
 enb_n=100
@@ -12,11 +11,13 @@ enb_n=100
 dir=${PWD##*/}
 if [ $dir ==  "hove" ] ||
    [ $dir ==  "skip" ] ||
-   [ $dir ==  "ser" ] ||
+   [ $dir ==  "ser"  ] ||
    [ $dir ==  "a2a4" ] ||
    [ $dir ==  "a3" ]
 then
     alg=$dir
+else
+    alg="hove"
 fi
 
 # check if arguments were passed
