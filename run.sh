@@ -7,6 +7,18 @@ video="highway"
 ue_n=60
 enb_n=100
 
+# if the directory is named after the algorthm used, 
+#use the name as input unless explicitly changed
+dir=${PWD##*/}
+if [ $dir ==  "hove" ] ||
+   [ $dir ==  "skip" ] ||
+   [ $dir ==  "ser" ] ||
+   [ $dir ==  "a2a4" ] ||
+   [ $dir ==  "a3" ]
+then
+    alg=$dir
+fi
+
 # check if arguments were passed
 if [ $# -gt 0 ]
 then
