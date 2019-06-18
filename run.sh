@@ -87,12 +87,29 @@ sed -i "s/\(#define video \)[0-9]/\1$video_id/g" scratch/v2x_3gpp_small.cc
 sed -i "s/\(node_ue = \)[0-9]\{,3\}/\1$ue_n/g" scratch/v2x_3gpp_small.cc
 sed -i "s/\(low_power = \)[0-9]\{,3\}/\1$enb_n/g" scratch/v2x_3gpp_small.cc
 
-# run simulation
-./waf configure
-mkdir ${alg}
+
+[ -d ${alg}_${enb_n} ] || mkdir ${alg}_${enb_n}
+
 for i in $(seq 1 $n)
 do
-    time ./waf --run "scratch/v2x_3gpp_small --handoverAlg=$alg --seedValue=$i" > log_${alg}_${i} 2>&1
-    mkdir ${alg}_${enb_n}/simul${i}
-    mv v2x_temp/* log_${alg}_${i} $alg_${enb_n}/simul$i
+    echo "running for seed value ${i}."
+    echo "outputing to file: log_${alg}_${i}"
+
+    echo "Configuring for:" | tee log_${alg}_${i}
+    echo "  n=${n}" | tee -a log_${alg}_${i}
+    echo "  video=${video}" | tee -a log_${alg}_${i}
+    echo "  ue_n=${ue_n}" | tee -a log_${alg}_${i}
+    echo "  enb_n=${enb_n}" | tee -a log_${alg}_${i}
+    echo "  alg=${alg}" | tee -a log_${alg}_${i}
+    echo
+
+    # run simulation
+    ./waf configure >> log_${alg}_${i} 2>&1
+    echo "configuration left with status ${?}"
+    echo
+
+    time ./waf --run "scratch/v2x_3gpp_small --handoverAlg=$alg --seedValue=$i" >> log_${alg}_${i} 2>&1
+    echo "simulation left with status ${?}"
+    mkdir -p ${alg}_${enb_n}/simul${i}
+    mv v2x_temp/* log_${alg}_${i} ${alg}_${enb_n}/simul$i
 done

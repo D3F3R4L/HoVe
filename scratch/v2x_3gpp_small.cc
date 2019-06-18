@@ -58,7 +58,7 @@
 
 #define SIMULATION_TIME_FORMAT(s) Seconds(s)
 
-#define video 8
+#define video 1
 
 #if video == 1
   #define video_st "sourceTraces/st_highway_cif.st"
@@ -122,10 +122,10 @@ double TxRate = 0;
 bool useCbr = false;
 bool verbose = true;
 
-const int node_ue = 60;
+const int node_ue = 0;
 
 const uint16_t enb_HPN = 1;
-const uint16_t low_power = 60;
+const uint16_t low_power = 0;
 const uint16_t hot_spot = 0;
 
 const int node_enb = enb_HPN + low_power + hot_spot;
@@ -874,14 +874,12 @@ int main(int argc, char* argv[])
     Simulator::Stop(SIMULATION_TIME_FORMAT(simTime));
 
     /*--------------NOTIFICAÇÕES DE HANDOVER E SINAL-------------------------*/
-    if (handoverAlg == "hove") {
     Config::Connect("/NodeList/*/DeviceList/*/LteUeRrc/ConnectionEstablished",
         MakeCallback(&NotifyConnectionEstablishedUe));
     Config::Connect("/NodeList/*/DeviceList/*/LteUeRrc/HandoverStart",
         MakeCallback(&NotifyHandoverStartUe));
     Config::Connect("/NodeList/*/DeviceList/*/LteUeRrc/HandoverEndOk",
         MakeCallback(&NotifyHandoverEndOkUe));
-    }
 
     Simulator::Run(); // Executa
     Simulator::Destroy();
