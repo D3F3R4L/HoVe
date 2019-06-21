@@ -122,10 +122,10 @@ double TxRate = 0;
 bool useCbr = false;
 bool verbose = true;
 
-const int node_ue = 0;
+const int node_ue = 1;
 
-const uint16_t enb_HPN = 1;
-const uint16_t low_power = 0;
+const uint16_t enb_HPN = 0;
+const uint16_t low_power = 151;
 const uint16_t hot_spot = 0;
 
 const int node_enb = enb_HPN + low_power + hot_spot;
@@ -133,7 +133,7 @@ const int node_enb = enb_HPN + low_power + hot_spot;
 int cell_ue[enb_HPN + low_power + hot_spot][node_ue];
 uint16_t n_cbr = useCbr?enb_HPN+low_power:0;
 
-int hpnTxPower = 50;
+int hpnTxPower = 46;
 int lpnTxPower = 23;
 int hpTxPower  = 15;
 
@@ -591,6 +591,8 @@ int main(int argc, char* argv[])
     if (verbose) {
       LogComponentEnable("LteEnbRrc", LOG_LEVEL_ALL);
       LogComponentEnable("LteUeRrc", LOG_LEVEL_ALL);
+      //LogComponentEnable("LteUePhy", LOG_LEVEL_ALL);
+      //LogComponentEnable("LteEnbPhy", LOG_LEVEL_ALL);
       LogComponentEnable("HoveHandoverAlgorithm", LOG_LEVEL_INFO);
       LogComponentEnable("HoveHandoverAlgorithm", LOG_LEVEL_DEBUG);
     }
@@ -837,12 +839,7 @@ int main(int argc, char* argv[])
 
     //-------------Anexa as UEs na eNodeB
 
-    if (handoverAlg == "hove"){
-      lteHelper->AttachToClosestEnb(carLteDevs, enbLteDevs);
-    }
-    else{
-      lteHelper->Attach(carLteDevs);
-    }
+    lteHelper->Attach(carLteDevs);
     lteHelper->AttachToClosestEnb(cbrLteDevs, enbLteDevs);
     lteHelper->AddX2Interface(enbNodes);
 
@@ -880,6 +877,8 @@ int main(int argc, char* argv[])
         MakeCallback(&NotifyHandoverStartUe));
     Config::Connect("/NodeList/*/DeviceList/*/LteUeRrc/HandoverEndOk",
         MakeCallback(&NotifyHandoverEndOkUe));
+
+    //lteHelper->EnableTraces();
 
     Simulator::Run(); // Executa
     Simulator::Destroy();
